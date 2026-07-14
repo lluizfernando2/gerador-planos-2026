@@ -13,7 +13,6 @@ import {
   Trash2,
   Plus,
   ArrowUpDown,
-  Sparkles,
   LogOut,
   User as UserIcon,
   Check,
@@ -1071,7 +1070,7 @@ export default function App() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <Sparkles className="h-4 w-4 text-emerald-600" />
+            <BookOpen className="h-4 w-4 text-emerald-600" />
             Gerador de Plano de Ensino (Campinas 2026)
           </button>
         </div>
@@ -1561,8 +1560,8 @@ export default function App() {
                           </>
                         ) : (
                           <>
-                            <Sparkles className="h-4 w-4" />
-                            <span>Gerar Plano de Ensino Pronto ✨</span>
+                            <BookOpen className="h-4 w-4" />
+                            <span>Gerar Plano de Ensino Pronto</span>
                           </>
                         )}
                       </button>
@@ -1644,12 +1643,12 @@ export default function App() {
               ) : (
                 <div className="bg-white rounded border border-gray-200 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4">
                   <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
-                    <Sparkles className="h-8 w-8" />
+                    <BookOpen className="h-8 w-8" />
                   </div>
                   <div className="space-y-1">
                     <h4 className="font-bold text-gray-800 text-sm">Cronograma Integrado de 10 Semanas</h4>
                     <p className="text-xs text-gray-400 max-w-sm leading-relaxed mx-auto">
-                      Selecione as aulas na lista lateral esquerda e clique em <strong>Gerar Plano de Ensino Pronto</strong>. A IA preencherá automaticamente as avaliações, metodologias ativas, ações Bloom e o cronograma integrado de Campinas 2026.
+                      Selecione as aulas na lista lateral esquerda e clique em <strong>Gerar Plano de Ensino Pronto</strong>. O sistema compilará automaticamente de forma local e offline as avaliações, metodologias ativas, ações Bloom e o cronograma integrado de Campinas 2026.
                     </p>
                   </div>
                   
