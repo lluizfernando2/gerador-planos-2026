@@ -7,9 +7,44 @@ export interface CurriculumItem {
   conteudo: string;
   objetivos: string;
   habilidade: string;
-  aprendizagem: string;
+  aprendizagem?: string;
   disciplina?: string;
+  eixo?: string;
+  unidadeTematica?: string;
+  raw?: any;
 }
 
 export type GradeFilter = 'Todos' | '6º Ano' | '7º Ano' | '8º Ano' | '9º Ano' | '1ª Série' | '2ª Série' | '3ª Série';
 export type BimestreFilter = 'Todos' | '1º Bimestre' | '2º Bimestre' | '3º Bimestre' | '4º Bimestre';
+
+export type PlanFormat = 'campinas-leste' | 'ava-efape' | 'campinas-leste-custom';
+
+export interface WeeklyAllocation {
+  lessonKeys?: string[];
+  projectDates?: string;
+  projectDescription?: string;
+}
+
+export interface WeekPlan {
+  semana: number;
+  periodo: string;
+  aulas_escopo: string;
+  ae: string;
+  acoes_bloom: string;
+  conteudos: string;
+  estrategia: string;
+  estrategia_verificacao?: string;
+  avaliacao: string;
+  lessons?: any[];
+  isProjectWeek?: boolean;
+  projectTitle?: string;
+  projectDescription?: string;
+}
+
+export interface MarginSettings {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+

@@ -16,6 +16,66 @@ import {
   topicsLP2em_1, topicsLP2em_2, topicsLP2em_3, topicsLP2em_4,
   topicsLP3em_1, topicsLP3em_2, topicsLP3em_3, topicsLP3em_4
 } from './portugueseEMData';
+import {
+  topicsGeo6_1, topicsGeo6_2, topicsGeo6_3, topicsGeo6_4,
+  topicsGeo7_1, topicsGeo7_2, topicsGeo7_3, topicsGeo7_4,
+  topicsGeo8_1, topicsGeo8_2, topicsGeo8_3, topicsGeo8_4,
+  topicsGeo9_1, topicsGeo9_2, topicsGeo9_3, topicsGeo9_4,
+  topicsGeoEM1_1, topicsGeoEM1_2, topicsGeoEM1_3, topicsGeoEM1_4,
+  topicsGeoEM2_1, topicsGeoEM2_2, topicsGeoEM2_3, topicsGeoEM2_4
+} from './geografiaData';
+import {
+  topicsHist6_1, topicsHist6_2, topicsHist6_3, topicsHist6_4,
+  topicsHist7_1, topicsHist7_2, topicsHist7_3, topicsHist7_4,
+  topicsHist8_1, topicsHist8_2, topicsHist8_3, topicsHist8_4,
+  topicsHist9_1, topicsHist9_2, topicsHist9_3, topicsHist9_4,
+  topicsHistEM1_1, topicsHistEM1_2, topicsHistEM1_3, topicsHistEM1_4,
+  topicsHistEM2_1, topicsHistEM2_2, topicsHistEM2_3, topicsHistEM2_4,
+  topicsHistEM3_1, topicsHistEM3_2, topicsHistEM3_3, topicsHistEM3_4
+} from './historiaData';
+import {
+  topicsIng6_1, topicsIng6_2, topicsIng6_3, topicsIng6_4,
+  topicsIng7_1, topicsIng7_2, topicsIng7_3, topicsIng7_4,
+  topicsIng8_1, topicsIng8_2, topicsIng8_3, topicsIng8_4,
+  topicsIng9_1, topicsIng9_2, topicsIng9_3, topicsIng9_4,
+  topicsIngEM1_1, topicsIngEM1_2,
+  topicsIngEM2_1, topicsIngEM2_2
+} from './inglesData';
+import {
+  topicsArte6_1, topicsArte6_2, topicsArte6_3, topicsArte6_4,
+  topicsArte7_1, topicsArte7_2, topicsArte7_3, topicsArte7_4,
+  topicsArte8_1, topicsArte8_2, topicsArte8_3, topicsArte8_4,
+  topicsArte9_1, topicsArte9_2, topicsArte9_3, topicsArte9_4,
+  topicsArteEM1_1, topicsArteEM1_2, topicsArteEM1_3, topicsArteEM1_4
+} from './arteData';
+import {
+  topicsEF6_1, topicsEF6_2, topicsEF6_3, topicsEF6_4,
+  topicsEF7_1, topicsEF7_2, topicsEF7_3, topicsEF7_4,
+  topicsEF8_1, topicsEF8_2, topicsEF8_3, topicsEF8_4,
+  topicsEF9_1, topicsEF9_2, topicsEF9_3, topicsEF9_4,
+  topicsEFEM1_1, topicsEFEM1_2, topicsEFEM1_3, topicsEFEM1_4,
+  topicsEFEM2_1, topicsEFEM2_2, topicsEFEM2_3, topicsEFEM2_4,
+  topicsEFEM3_1, topicsEFEM3_2, topicsEFEM3_3, topicsEFEM3_4
+} from './educacaoFisicaData';
+import {
+  topicsFiloEM1_1, topicsFiloEM1_2, topicsFiloEM1_3, topicsFiloEM1_4
+} from './filosofiaData';
+import {
+  topicsSocioEM2_1, topicsSocioEM2_2, topicsSocioEM2_3, topicsSocioEM2_4
+} from './sociologiaData';
+import {
+  topicsBioEM1_1, topicsBioEM1_2, topicsBioEM1_3, topicsBioEM1_4,
+  topicsBioEM2_1, topicsBioEM2_2, topicsBioEM2_3, topicsBioEM2_4
+} from './biologiaData';
+import {
+  topicsQuiEM1_1, topicsQuiEM1_2, topicsQuiEM1_3, topicsQuiEM1_4,
+  topicsQuiEM2_1, topicsQuiEM2_2, topicsQuiEM2_3, topicsQuiEM2_4
+} from './quimicaData';
+import {
+  topicsFisEM1_1, topicsFisEM1_2, topicsFisEM1_3, topicsFisEM1_4,
+  topicsFisEM2_1, topicsFisEM2_2, topicsFisEM2_3, topicsFisEM2_4,
+  topicsFisEM3_1, topicsFisEM3_2, topicsFisEM3_3, topicsFisEM3_4
+} from './fisicaData';
 
 interface TopicConfig {
   start: number;
@@ -1416,5 +1476,216 @@ export const initialCurriculumData: CurriculumItem[] = [
   ...generateLessons("3ª Série", "1º Bimestre", 28, topicsLP3em_1, "Língua Portuguesa"),
   ...generateLessons("3ª Série", "2º Bimestre", 28, topicsLP3em_2, "Língua Portuguesa"),
   ...generateLessons("3ª Série", "3º Bimestre", 24, topicsLP3em_3, "Língua Portuguesa"),
-  ...generateLessons("3ª Série", "4º Bimestre", 24, topicsLP3em_4, "Língua Portuguesa")
+  ...generateLessons("3ª Série", "4º Bimestre", 24, topicsLP3em_4, "Língua Portuguesa"),
+
+  // --- GEOGRAFIA (ANOS FINAIS) ---
+  ...generateLessons("6º Ano", "1º Bimestre", 21, topicsGeo6_1, "Geografia"),
+  ...generateLessons("6º Ano", "2º Bimestre", 21, topicsGeo6_2, "Geografia"),
+  ...generateLessons("6º Ano", "3º Bimestre", 18, topicsGeo6_3, "Geografia"),
+  ...generateLessons("6º Ano", "4º Bimestre", 18, topicsGeo6_4, "Geografia"),
+
+  ...generateLessons("7º Ano", "1º Bimestre", 21, topicsGeo7_1, "Geografia"),
+  ...generateLessons("7º Ano", "2º Bimestre", 21, topicsGeo7_2, "Geografia"),
+  ...generateLessons("7º Ano", "3º Bimestre", 18, topicsGeo7_3, "Geografia"),
+  ...generateLessons("7º Ano", "4º Bimestre", 18, topicsGeo7_4, "Geografia"),
+
+  ...generateLessons("8º Ano", "1º Bimestre", 14, topicsGeo8_1, "Geografia"),
+  ...generateLessons("8º Ano", "2º Bimestre", 14, topicsGeo8_2, "Geografia"),
+  ...generateLessons("8º Ano", "3º Bimestre", 12, topicsGeo8_3, "Geografia"),
+  ...generateLessons("8º Ano", "4º Bimestre", 12, topicsGeo8_4, "Geografia"),
+
+  ...generateLessons("9º Ano", "1º Bimestre", 14, topicsGeo9_1, "Geografia"),
+  ...generateLessons("9º Ano", "2º Bimestre", 14, topicsGeo9_2, "Geografia"),
+  ...generateLessons("9º Ano", "3º Bimestre", 12, topicsGeo9_3, "Geografia"),
+  ...generateLessons("9º Ano", "4º Bimestre", 12, topicsGeo9_4, "Geografia"),
+
+  // --- GEOGRAFIA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsGeoEM1_1, "Geografia"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsGeoEM1_2, "Geografia"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsGeoEM1_3, "Geografia"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsGeoEM1_4, "Geografia"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsGeoEM2_1, "Geografia"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsGeoEM2_2, "Geografia"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsGeoEM2_3, "Geografia"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsGeoEM2_4, "Geografia"),
+
+  // --- HISTÓRIA (ANOS FINAIS) ---
+  ...generateLessons("6º Ano", "1º Bimestre", 14, topicsHist6_1, "História"),
+  ...generateLessons("6º Ano", "2º Bimestre", 14, topicsHist6_2, "História"),
+  ...generateLessons("6º Ano", "3º Bimestre", 12, topicsHist6_3, "História"),
+  ...generateLessons("6º Ano", "4º Bimestre", 12, topicsHist6_4, "História"),
+
+  ...generateLessons("7º Ano", "1º Bimestre", 14, topicsHist7_1, "História"),
+  ...generateLessons("7º Ano", "2º Bimestre", 14, topicsHist7_2, "História"),
+  ...generateLessons("7º Ano", "3º Bimestre", 12, topicsHist7_3, "História"),
+  ...generateLessons("7º Ano", "4º Bimestre", 12, topicsHist7_4, "História"),
+
+  ...generateLessons("8º Ano", "1º Bimestre", 21, topicsHist8_1, "História"),
+  ...generateLessons("8º Ano", "2º Bimestre", 21, topicsHist8_2, "História"),
+  ...generateLessons("8º Ano", "3º Bimestre", 18, topicsHist8_3, "História"),
+  ...generateLessons("8º Ano", "4º Bimestre", 18, topicsHist8_4, "História"),
+
+  ...generateLessons("9º Ano", "1º Bimestre", 21, topicsHist9_1, "História"),
+  ...generateLessons("9º Ano", "2º Bimestre", 21, topicsHist9_2, "História"),
+  ...generateLessons("9º Ano", "3º Bimestre", 18, topicsHist9_3, "História"),
+  ...generateLessons("9º Ano", "4º Bimestre", 18, topicsHist9_4, "História"),
+
+  // --- LÍNGUA INGLESA (ANOS FINAIS) ---
+  ...generateLessons("6º Ano", "1º Bimestre", 14, topicsIng6_1, "Língua Inglesa"),
+  ...generateLessons("6º Ano", "2º Bimestre", 14, topicsIng6_2, "Língua Inglesa"),
+  ...generateLessons("6º Ano", "3º Bimestre", 12, topicsIng6_3, "Língua Inglesa"),
+  ...generateLessons("6º Ano", "4º Bimestre", 12, topicsIng6_4, "Língua Inglesa"),
+
+  ...generateLessons("7º Ano", "1º Bimestre", 14, topicsIng7_1, "Língua Inglesa"),
+  ...generateLessons("7º Ano", "2º Bimestre", 14, topicsIng7_2, "Língua Inglesa"),
+  ...generateLessons("7º Ano", "3º Bimestre", 12, topicsIng7_3, "Língua Inglesa"),
+  ...generateLessons("7º Ano", "4º Bimestre", 12, topicsIng7_4, "Língua Inglesa"),
+
+  ...generateLessons("8º Ano", "1º Bimestre", 14, topicsIng8_1, "Língua Inglesa"),
+  ...generateLessons("8º Ano", "2º Bimestre", 14, topicsIng8_2, "Língua Inglesa"),
+  ...generateLessons("8º Ano", "3º Bimestre", 12, topicsIng8_3, "Língua Inglesa"),
+  ...generateLessons("8º Ano", "4º Bimestre", 12, topicsIng8_4, "Língua Inglesa"),
+
+  ...generateLessons("9º Ano", "1º Bimestre", 14, topicsIng9_1, "Língua Inglesa"),
+  ...generateLessons("9º Ano", "2º Bimestre", 14, topicsIng9_2, "Língua Inglesa"),
+  ...generateLessons("9º Ano", "3º Bimestre", 12, topicsIng9_3, "Língua Inglesa"),
+  ...generateLessons("9º Ano", "4º Bimestre", 12, topicsIng9_4, "Língua Inglesa"),
+
+  // --- LÍNGUA INGLESA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 12, topicsIngEM1_1, "Língua Inglesa"),
+  ...generateLessons("1ª Série", "2º Bimestre", 12, topicsIngEM1_2, "Língua Inglesa"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 12, topicsIngEM2_1, "Língua Inglesa"),
+  ...generateLessons("2ª Série", "2º Bimestre", 12, topicsIngEM2_2, "Língua Inglesa"),
+
+  // --- HISTÓRIA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsHistEM1_1, "História"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsHistEM1_2, "História"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsHistEM1_3, "História"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsHistEM1_4, "História"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsHistEM2_1, "História"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsHistEM2_2, "História"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsHistEM2_3, "História"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsHistEM2_4, "História"),
+
+  ...generateLessons("3ª Série", "1º Bimestre", 14, topicsHistEM3_1, "História"),
+  ...generateLessons("3ª Série", "2º Bimestre", 14, topicsHistEM3_2, "História"),
+  ...generateLessons("3ª Série", "3º Bimestre", 12, topicsHistEM3_3, "História"),
+  ...generateLessons("3ª Série", "4º Bimestre", 12, topicsHistEM3_4, "História"),
+
+  // --- ARTE (ANOS FINAIS) ---
+  ...generateLessons("6º Ano", "1º Bimestre", 14, topicsArte6_1, "Arte"),
+  ...generateLessons("6º Ano", "2º Bimestre", 14, topicsArte6_2, "Arte"),
+  ...generateLessons("6º Ano", "3º Bimestre", 12, topicsArte6_3, "Arte"),
+  ...generateLessons("6º Ano", "4º Bimestre", 12, topicsArte6_4, "Arte"),
+
+  ...generateLessons("7º Ano", "1º Bimestre", 14, topicsArte7_1, "Arte"),
+  ...generateLessons("7º Ano", "2º Bimestre", 14, topicsArte7_2, "Arte"),
+  ...generateLessons("7º Ano", "3º Bimestre", 12, topicsArte7_3, "Arte"),
+  ...generateLessons("7º Ano", "4º Bimestre", 12, topicsArte7_4, "Arte"),
+
+  ...generateLessons("8º Ano", "1º Bimestre", 14, topicsArte8_1, "Arte"),
+  ...generateLessons("8º Ano", "2º Bimestre", 14, topicsArte8_2, "Arte"),
+  ...generateLessons("8º Ano", "3º Bimestre", 12, topicsArte8_3, "Arte"),
+  ...generateLessons("8º Ano", "4º Bimestre", 12, topicsArte8_4, "Arte"),
+
+  ...generateLessons("9º Ano", "1º Bimestre", 14, topicsArte9_1, "Arte"),
+  ...generateLessons("9º Ano", "2º Bimestre", 14, topicsArte9_2, "Arte"),
+  ...generateLessons("9º Ano", "3º Bimestre", 12, topicsArte9_3, "Arte"),
+  ...generateLessons("9º Ano", "4º Bimestre", 12, topicsArte9_4, "Arte"),
+
+  // --- ARTE (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsArteEM1_1, "Arte"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsArteEM1_2, "Arte"),
+  ...generateLessons("1ª Série", "3º Bimestre", 14, topicsArteEM1_3, "Arte"),
+  ...generateLessons("1ª Série", "4º Bimestre", 14, topicsArteEM1_4, "Arte"),
+
+  // --- EDUCAÇÃO FÍSICA (ANOS FINAIS) ---
+  ...generateLessons("6º Ano", "1º Bimestre", 14, topicsEF6_1, "Educação Física"),
+  ...generateLessons("6º Ano", "2º Bimestre", 14, topicsEF6_2, "Educação Física"),
+  ...generateLessons("6º Ano", "3º Bimestre", 12, topicsEF6_3, "Educação Física"),
+  ...generateLessons("6º Ano", "4º Bimestre", 12, topicsEF6_4, "Educação Física"),
+
+  ...generateLessons("7º Ano", "1º Bimestre", 14, topicsEF7_1, "Educação Física"),
+  ...generateLessons("7º Ano", "2º Bimestre", 14, topicsEF7_2, "Educação Física"),
+  ...generateLessons("7º Ano", "3º Bimestre", 12, topicsEF7_3, "Educação Física"),
+  ...generateLessons("7º Ano", "4º Bimestre", 12, topicsEF7_4, "Educação Física"),
+
+  ...generateLessons("8º Ano", "1º Bimestre", 14, topicsEF8_1, "Educação Física"),
+  ...generateLessons("8º Ano", "2º Bimestre", 14, topicsEF8_2, "Educação Física"),
+  ...generateLessons("8º Ano", "3º Bimestre", 12, topicsEF8_3, "Educação Física"),
+  ...generateLessons("8º Ano", "4º Bimestre", 12, topicsEF8_4, "Educação Física"),
+
+  ...generateLessons("9º Ano", "1º Bimestre", 14, topicsEF9_1, "Educação Física"),
+  ...generateLessons("9º Ano", "2º Bimestre", 14, topicsEF9_2, "Educação Física"),
+  ...generateLessons("9º Ano", "3º Bimestre", 12, topicsEF9_3, "Educação Física"),
+  ...generateLessons("9º Ano", "4º Bimestre", 12, topicsEF9_4, "Educação Física"),
+
+  // --- EDUCAÇÃO FÍSICA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsEFEM1_1, "Educação Física"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsEFEM1_2, "Educação Física"),
+  ...generateLessons("1ª Série", "3º Bimestre", 14, topicsEFEM1_3, "Educação Física"),
+  ...generateLessons("1ª Série", "4º Bimestre", 14, topicsEFEM1_4, "Educação Física"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsEFEM2_1, "Educação Física"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsEFEM2_2, "Educação Física"),
+  ...generateLessons("2ª Série", "3º Bimestre", 14, topicsEFEM2_3, "Educação Física"),
+  ...generateLessons("2ª Série", "4º Bimestre", 14, topicsEFEM2_4, "Educação Física"),
+
+  ...generateLessons("3ª Série", "1º Bimestre", 14, topicsEFEM3_1, "Educação Física"),
+  ...generateLessons("3ª Série", "2º Bimestre", 14, topicsEFEM3_2, "Educação Física"),
+  ...generateLessons("3ª Série", "3º Bimestre", 14, topicsEFEM3_3, "Educação Física"),
+  ...generateLessons("3ª Série", "4º Bimestre", 14, topicsEFEM3_4, "Educação Física"),
+
+  // --- FILOSOFIA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsFiloEM1_1, "Filosofia"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsFiloEM1_2, "Filosofia"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsFiloEM1_3, "Filosofia"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsFiloEM1_4, "Filosofia"),
+
+  // --- SOCIOLOGIA (ENSINO MÉDIO) ---
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsSocioEM2_1, "Sociologia"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsSocioEM2_2, "Sociologia"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsSocioEM2_3, "Sociologia"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsSocioEM2_4, "Sociologia"),
+
+  // --- BIOLOGIA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsBioEM1_1, "Biologia"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsBioEM1_2, "Biologia"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsBioEM1_3, "Biologia"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsBioEM1_4, "Biologia"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsBioEM2_1, "Biologia"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsBioEM2_2, "Biologia"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsBioEM2_3, "Biologia"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsBioEM2_4, "Biologia"),
+
+  // --- QUÍMICA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsQuiEM1_1, "Química"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsQuiEM1_2, "Química"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsQuiEM1_3, "Química"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsQuiEM1_4, "Química"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsQuiEM2_1, "Química"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsQuiEM2_2, "Química"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsQuiEM2_3, "Química"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsQuiEM2_4, "Química"),
+
+  // --- FÍSICA (ENSINO MÉDIO) ---
+  ...generateLessons("1ª Série", "1º Bimestre", 14, topicsFisEM1_1, "Física"),
+  ...generateLessons("1ª Série", "2º Bimestre", 14, topicsFisEM1_2, "Física"),
+  ...generateLessons("1ª Série", "3º Bimestre", 12, topicsFisEM1_3, "Física"),
+  ...generateLessons("1ª Série", "4º Bimestre", 12, topicsFisEM1_4, "Física"),
+
+  ...generateLessons("2ª Série", "1º Bimestre", 14, topicsFisEM2_1, "Física"),
+  ...generateLessons("2ª Série", "2º Bimestre", 14, topicsFisEM2_2, "Física"),
+  ...generateLessons("2ª Série", "3º Bimestre", 12, topicsFisEM2_3, "Física"),
+  ...generateLessons("2ª Série", "4º Bimestre", 12, topicsFisEM2_4, "Física"),
+
+  ...generateLessons("3ª Série", "1º Bimestre", 14, topicsFisEM3_1, "Física"),
+  ...generateLessons("3ª Série", "2º Bimestre", 14, topicsFisEM3_2, "Física"),
+  ...generateLessons("3ª Série", "3º Bimestre", 12, topicsFisEM3_3, "Física"),
+  ...generateLessons("3ª Série", "4º Bimestre", 12, topicsFisEM3_4, "Física")
 ];

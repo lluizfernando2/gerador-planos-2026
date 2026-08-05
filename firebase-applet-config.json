@@ -6,5 +6,6 @@
   "storageBucket": "inbound-verbena-sjlsj.firebasestorage.app",
   "messagingSenderId": "885141529408",
   "measurementId": "",
-  "oAuthClientId": "885141529408-m8k9dejtme8qc9p9gdarsqq8dvec4oqn.apps.googleusercontent.com"
+  "oAuthClientId": "885141529408-m8k9dejtme8qc9p9gdarsqq8dvec4oqn.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }

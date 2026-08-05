@@ -1,6 +1,6 @@
 {
   "name": "Currículo Priorizado",
-  "description": "Visualizador e exportador do Currículo Priorizado de Matemática do Estado de São Paulo para Excel e Google Planilhas.",
+  "description": "Visualizador, gerador e exportador do Currículo Priorizado e Técnico do Estado de São Paulo com suporte a planejamento bimestral completo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
