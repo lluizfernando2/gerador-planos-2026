@@ -101,7 +101,7 @@ export default function DocumentPreview({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition cursor-pointer"
           >
             <FileText className="h-3.5 w-3.5" />
-            Baixar Word (.doc)
+            Baixar Word (.docx)
           </button>
           <button
             onClick={onDownloadHtml}

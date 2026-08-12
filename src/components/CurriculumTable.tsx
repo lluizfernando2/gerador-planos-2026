@@ -10,6 +10,7 @@ import DetailModal from './DetailModal';
 import ToastNotification, { ToastMessage } from './ToastNotification';
 import HelpSection from './HelpSection';
 import Footer from './Footer';
+import { buildSecuredPrompt } from '../lib/securityPrompt';
 import {
   PROJETO_DE_VIDA_DATA,
   TECNOLOGIA_INOVACAO_DATA,
@@ -142,7 +143,7 @@ export default function CurriculumTable({ items, onDeleteItem, onFilteredItemsCh
       groupCriteria = 'Questões discursivas/dissertativas complexas que exijam reflexão crítica, argumentação bem estruturada, síntese de ideias ou solução detalhada de problemas complexos. Forneça o gabarito e a expectativa de resposta esperada para o professor.';
     }
 
-    const promptText = `Olá, Gemini! Atuo como docente de **${disciplina}** para o **${ano}** do Ensino Básico.
+    const rawPromptText = `Olá, Gemini! Atuo como docente de **${disciplina}** para o **${ano}** do Ensino Básico.
 Gostaria que você gerasse um banco de dados com exatamente **10 questões inéditas de nível do ${groupDescription}** baseadas rigorosamente na aula abaixo, seguindo as diretrizes do Currículo Paulista:
 
 📌 **DADOS DA AULA:**
@@ -168,6 +169,8 @@ ${item.questoes ? `- **Questões Essenciais de Apoio:** ${item.questoes}` : ''}
 4. **Linguagem:** Clara, acessível para estudantes do ${ano}, gramaticalmente perfeita, de acordo com a norma-padrão da Língua Portuguesa.
 
 Por favor, gere o material completo estruturado para cópia direta!`;
+
+    const promptText = buildSecuredPrompt(rawPromptText);
 
     navigator.clipboard.writeText(promptText).then(() => {
       showLocalToast(`Prompt do Grupo ${groupNum} copiado! Abrindo Gemini...`);
@@ -1728,20 +1731,20 @@ Por favor, gere o material completo estruturado para cópia direta!`;
   return (
     <div className="space-y-6">
       {/* Filters and Controls */}
-      <div className="bg-white rounded border border-gray-200 p-5 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100 flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             Filtros do Currículo
           </h2>
-          <div className="text-xs font-mono text-gray-500 bg-gray-50 px-3 py-1.5 rounded border border-gray-200">
+          <div className="text-xs font-mono text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700">
             {isUnderConstruction ? 'Página em Construção' : `Mostrando ${filteredItems.length} de ${totalSubjectItems} Aulas`}
           </div>
         </div>
 
         {/* Segment selector buttons */}
-        <div className="flex flex-col gap-3 border-b border-gray-100 pb-4">
-          <div className="flex bg-slate-200/90 p-1.5 rounded-xl w-fit border border-slate-300" translate="no" lang="pt-BR">
+        <div className="flex flex-col gap-3 border-b border-gray-100 dark:border-slate-700 pb-4">
+          <div className="flex bg-slate-200/90 dark:bg-slate-900/90 p-1.5 rounded-xl w-fit border border-slate-300 dark:border-slate-700" translate="no" lang="pt-BR">
             <button
               onClick={() => {
                 setSelectedSegment('ENSINO FUNDAMENTAL ANOS FINAIS');
@@ -1750,7 +1753,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
               className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                 selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS'
                   ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
               }`}
             >
               Ensino Fundamental (Anos Finais)
@@ -1760,20 +1763,20 @@ Por favor, gere o material completo estruturado para cópia direta!`;
               className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                 selectedSegment === 'ENSINO MÉDIO'
                   ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
               }`}
             >
               Ensino Médio
             </button>
           </div>
 
-          <div className="flex bg-slate-200/90 p-1.5 rounded-xl w-fit border border-slate-300" translate="no" lang="pt-BR">
+          <div className="flex bg-slate-200/90 dark:bg-slate-900/90 p-1.5 rounded-xl w-fit border border-slate-300 dark:border-slate-700" translate="no" lang="pt-BR">
             <button
               onClick={() => setSubjectCategory('FGB')}
               className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                 subjectCategory === 'FGB'
                   ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
               }`}
             >
               Formação Geral Básica
@@ -1783,7 +1786,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
               className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                 subjectCategory === 'DIVERSIFICADA'
                   ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
               }`}
             >
               Parte Diversificada
@@ -1795,7 +1798,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                   className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                     subjectCategory === 'ITINERARIOS'
                       ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
                   }`}
                 >
                   Itinerários Formativos
@@ -1805,7 +1808,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                   className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                     subjectCategory === 'TECNICO'
                       ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-500 border border-emerald-900 scale-[1.02]'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/80 font-bold'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-800 font-bold'
                   }`}
                 >
                   Ensino Técnico
@@ -1816,13 +1819,13 @@ Por favor, gere o material completo estruturado para cópia direta!`;
         </div>
 
         {/* Disciplinas selector abas */}
-        <div className="space-y-2 border-b border-gray-100 pb-4" translate="no" lang="pt-BR">
-          <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <div className="space-y-2 border-b border-gray-100 dark:border-slate-700 pb-4" translate="no" lang="pt-BR">
+          <span className="block text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider">
             {segment === 'Parte Diversificada' ? 'Componentes do Programa Inova Educação' : `Disciplinas (${getSubjects().length})`}
           </span>
           <div className="flex flex-wrap gap-1.5">
             {getSubjects().length === 0 ? (
-              <span className="text-xs text-gray-400 italic">Nenhuma disciplina cadastrada para este segmento.</span>
+              <span className="text-xs text-gray-400 dark:text-slate-500 italic">Nenhuma disciplina cadastrada para este segmento.</span>
             ) : (
               getSubjects().map((sub) => {
                 const active = subject === sub;
@@ -1833,7 +1836,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                     className={`px-3.5 py-1.5 text-xs font-black rounded-full transition-all duration-150 border cursor-pointer ${
                       active
                         ? 'bg-emerald-700 text-white border-emerald-900 shadow-md ring-2 ring-emerald-400 scale-[1.03]'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-900 font-bold'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:border-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-300 font-bold'
                     }`}
                   >
                     {sub}
@@ -1848,14 +1851,14 @@ Por favor, gere o material completo estruturado para cópia direta!`;
           {/* Search bar */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-400 dark:text-slate-500" />
             </div>
             <input
               type="text"
               placeholder="Buscar título, conteúdo, habilidade..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 hover:bg-gray-50 transition"
+              className="block w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-900 text-slate-900 dark:text-slate-100 transition"
             />
           </div>
 
@@ -1864,7 +1867,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
             <select
               value={gradeFilter}
               onChange={(e) => setGradeFilter(e.target.value as GradeFilter)}
-              className="block w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 hover:bg-gray-50 transition"
+              className="block w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50/50 dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-900 text-slate-900 dark:text-slate-100 transition"
             >
               {segment === 'Todos' && (
                 <>
@@ -2258,7 +2261,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             {segment === 'Parte Diversificada' ? (
               renderDiversificadaTable()
@@ -2267,7 +2270,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
             ) : (
               <table className="w-full text-left border-collapse table-fixed">
                 <thead>
-                  <tr className="bg-gray-100 border-b border-gray-300 text-xs font-black text-gray-700 uppercase tracking-wider">
+                  <tr className="bg-gray-100 dark:bg-slate-900 border-b border-gray-300 dark:border-slate-700 text-xs font-black text-gray-700 dark:text-slate-200 uppercase tracking-wider">
                     <th className="px-5 py-3.5 w-32 relative">
                       Ano / Bim
                       <span className="absolute right-2 top-3.5 text-[9px] opacity-40">▼</span>
@@ -2281,14 +2284,14 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                     {onDeleteItem && <th className="px-5 py-3.5 w-24 text-right">Ações</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/80 text-sm text-gray-600 dark:text-slate-300">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={onDeleteItem ? 8 : 7} className="text-center py-12 text-gray-400">
+                      <td colSpan={onDeleteItem ? 8 : 7} className="text-center py-12 text-gray-400 dark:text-slate-500">
                         <div className="flex flex-col items-center justify-center space-y-2">
-                          <BookOpen className="h-10 w-10 text-gray-300 stroke-[1.5]" />
-                          <p className="font-semibold text-gray-700">Nenhum dado de currículo encontrado</p>
-                          <p className="text-xs text-gray-400">Tente ajustar seus termos de busca ou filtros.</p>
+                          <BookOpen className="h-10 w-10 text-gray-300 dark:text-slate-600 stroke-[1.5]" />
+                          <p className="font-semibold text-gray-700 dark:text-slate-200">Nenhum dado de currículo encontrado</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-400">Tente ajustar seus termos de busca ou filtros.</p>
                         </div>
                       </td>
                     </tr>
@@ -2296,37 +2299,37 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                     (filteredItems as CurriculumItem[]).map((item) => (
                       <tr
                         key={item.id}
-                        className="hover:bg-blue-50 transition-colors cursor-pointer group"
+                        className="hover:bg-blue-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
                         onClick={() => setSelectedItem(item)}
                       >
                         {/* Grade & Bimestre */}
                         <td className="px-5 py-4 align-top">
                           <div className="space-y-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800">
                               {item.ano}
                             </span>
-                            <div className="text-xs text-gray-400 font-medium">{item.bimestre}</div>
+                            <div className="text-xs text-gray-400 dark:text-slate-400 font-medium">{item.bimestre}</div>
                           </div>
                         </td>
 
                         {/* Lesson No */}
-                        <td className="px-4 py-4 text-center font-bold text-gray-800 align-top">
+                        <td className="px-4 py-4 text-center font-bold text-gray-800 dark:text-slate-100 align-top">
                           {item.aula}
                         </td>
 
                         {/* Title / Content */}
                         <td className="px-5 py-4 align-top">
                           <div className="space-y-1">
-                            <div className="font-bold text-gray-800 group-hover:text-emerald-700 transition line-clamp-2 leading-relaxed">
+                            <div className="font-bold text-gray-800 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition line-clamp-2 leading-relaxed">
                               {item.titulo}
                             </div>
-                            <div className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.conteudo}</div>
+                            <div className="text-xs text-gray-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{item.conteudo}</div>
                           </div>
                         </td>
 
                         {/* Objectives */}
                         <td className="px-5 py-4 align-top text-[11px] leading-relaxed max-w-xs">
-                          <div className="line-clamp-4 text-gray-600 whitespace-pre-line">
+                          <div className="line-clamp-4 text-gray-600 dark:text-slate-300 whitespace-pre-line">
                             {item.objetivos}
                           </div>
                         </td>
@@ -2337,7 +2340,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                             {item.habilidade.split(/[\s,]+/).filter(Boolean).map((hab, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800"
                               >
                                 {hab}
                               </span>
@@ -2346,32 +2349,32 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                         </td>
 
                         {/* Essential Learning */}
-                        <td className="px-5 py-4 align-top text-[11px] text-gray-600 italic max-w-xs">
+                        <td className="px-5 py-4 align-top text-[11px] text-gray-600 dark:text-slate-300 italic max-w-xs">
                           <div className="line-clamp-3 leading-relaxed">{item.aprendizagem}</div>
                         </td>
 
                         {/* Gemini IA Column */}
                         <td className="px-5 py-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex flex-col gap-1.5 items-center justify-center">
-                            <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider flex items-center gap-1"><Sparkles className="h-2.5 w-2.5" /> Criar no Gemini</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider flex items-center gap-1"><Sparkles className="h-2.5 w-2.5" /> Criar no Gemini</span>
                             <div className="flex gap-1 justify-center">
                               <button
                                 onClick={() => handleGeminiPrompt(item, 1)}
-                                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2 py-1 rounded border border-emerald-200 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
+                                className="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
                                 title="Grupo 1 (Básico)"
                               >
                                 G1
                               </button>
                               <button
                                 onClick={() => handleGeminiPrompt(item, 2)}
-                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-extrabold px-2 py-1 rounded border border-blue-200 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
+                                className="bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/80 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold px-2 py-1 rounded border border-blue-200 dark:border-blue-800 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
                                 title="Grupo 2 (Intermediário)"
                               >
                                 G2
                               </button>
                               <button
                                 onClick={() => handleGeminiPrompt(item, 3)}
-                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-extrabold px-2 py-1 rounded border border-amber-200 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
+                                className="bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 text-amber-700 dark:text-amber-300 text-[10px] font-extrabold px-2 py-1 rounded border border-amber-200 dark:border-amber-800 shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition"
                                 title="Grupo 3 (Avançado)"
                               >
                                 G3
@@ -2389,7 +2392,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                                   onDeleteItem(item.id);
                                 }
                               }}
-                              className="text-xs text-red-500 hover:text-red-700 font-bold hover:underline p-1"
+                              className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold hover:underline p-1"
                             >
                               Excluir
                             </button>
@@ -2413,33 +2416,33 @@ Por favor, gere o material completo estruturado para cópia direta!`;
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded border border-gray-200 shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
+              className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
             >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded ${
+                  <div className={`p-2 rounded-lg ${
                     segment === 'Parte Diversificada'
-                      ? subject === 'Projeto de Vida' ? 'bg-purple-50 text-purple-600'
-                        : subject === 'Tecnologia e Inovação' ? 'bg-sky-50 text-sky-600'
-                        : (subject === 'Orientação de Estudos - Matemática' || subject === 'Orientação de Estudos - Português') ? 'bg-rose-50 text-rose-600'
-                        : (subject === 'Redação e leitura' || subject === 'Redação e Leitura') ? 'bg-teal-50 text-teal-600'
-                        : 'bg-amber-50 text-amber-600'
-                      : 'bg-emerald-50 text-emerald-600'
+                      ? subject === 'Projeto de Vida' ? 'bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300'
+                        : subject === 'Tecnologia e Inovação' ? 'bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-300'
+                        : (subject === 'Orientação de Estudos - Matemática' || subject === 'Orientação de Estudos - Português') ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300'
+                        : (subject === 'Redação e leitura' || subject === 'Redação e Leitura') ? 'bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300'
+                        : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300'
+                      : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300'
                   }`}>
                     <BookOpen className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 text-lg">
+                    <h3 className="font-bold text-gray-800 dark:text-slate-100 text-lg">
                       {segment === 'Parte Diversificada' ? `Detalhes de ${subject}` : `Detalhes da Aula ${selectedItem.aula}`}
                     </h3>
-                    <p className="text-xs text-gray-400 font-medium">
+                    <p className="text-xs text-gray-400 dark:text-slate-400 font-medium">
                       {selectedItem.ano} • {selectedItem.bimestre} {selectedItem.semana ? `• ${selectedItem.semana}` : ''}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                  className="rounded-lg p-1.5 text-gray-400 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-slate-200 transition cursor-pointer"
                 >
                   ✕
                 </button>
@@ -2454,28 +2457,28 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                   <div className="space-y-6">
                     {/* Title */}
                     <div>
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                      <h4 className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-1">
                         Título da Aula
                       </h4>
-                      <p className="text-gray-800 font-bold text-base">{selectedItem.titulo}</p>
+                      <p className="text-gray-800 dark:text-slate-100 font-bold text-base">{selectedItem.titulo}</p>
                     </div>
 
                     {/* Content */}
                     <div>
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                      <h4 className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-1">
                         Conteúdo
                       </h4>
-                      <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-3 rounded border border-gray-100">
+                      <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed bg-gray-50 dark:bg-slate-900 p-3 rounded-xl border border-gray-100 dark:border-slate-700">
                         {selectedItem.conteudo}
                       </p>
                     </div>
 
                     {/* Objectives */}
                     <div>
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">
                         Objetivos de Aprendizagem
                       </h4>
-                      <div className="bg-gray-50 p-4 rounded border border-gray-100 text-sm text-gray-600 leading-relaxed whitespace-pre-line space-y-2">
+                      <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-700 text-sm text-gray-600 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-2">
                         {selectedItem.objetivos}
                       </div>
                     </div>
@@ -2483,14 +2486,14 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                     {/* Skills and Essential Learning */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">
                           Habilidades
                         </h4>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedItem.habilidade.split(/[\s,]+/).filter(Boolean).map((hab: string, idx: number) => (
                             <span
                               key={idx}
-                              className="inline-flex items-center px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-100"
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800"
                             >
                               {hab}
                             </span>
@@ -2499,50 +2502,50 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">
                           Aprendizagem Essencial
                         </h4>
-                        <p className="text-gray-600 text-xs leading-relaxed bg-emerald-50/30 p-3 rounded border border-emerald-100/30 italic">
+                        <p className="text-gray-600 dark:text-slate-300 text-xs leading-relaxed bg-emerald-50/30 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-100/30 dark:border-emerald-900/40 italic">
                           {selectedItem.aprendizagem}
                         </p>
                       </div>
                     </div>
 
                     {/* Gemini Prompt Generator Section */}
-                    <div className="bg-slate-50 border border-slate-200 rounded p-4 space-y-3 mt-4">
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3 mt-4">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-emerald-600" />
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
                           Gerador de Questões Gemini IA
                         </h4>
                       </div>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                         Selecione o grupo desejado para copiar o prompt pedagogicamente estruturado e abrir o Gemini do Google em uma nova aba:
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
                         <button
                           onClick={() => handleGeminiPrompt(selectedItem, 1)}
-                          className="bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-left p-2.5 rounded shadow-xs transition group cursor-pointer"
+                          className="bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-emerald-200 text-left p-2.5 rounded-lg shadow-xs transition group cursor-pointer"
                         >
-                          <div className="text-xs font-black text-emerald-700 uppercase tracking-wider mb-0.5 group-hover:text-emerald-800">Grupo 1</div>
-                          <div className="text-[10px] text-slate-400 font-semibold mb-1">Nível Básico</div>
-                          <div className="text-[10px] text-slate-500 leading-normal line-clamp-2">Perguntas diretas de múltipla escolha para checar memorização e conceitos.</div>
+                          <div className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-0.5 group-hover:text-emerald-800 dark:group-hover:text-emerald-300">Grupo 1</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold mb-1">Nível Básico</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-300 leading-normal line-clamp-2">Perguntas diretas de múltipla escolha para checar memorização e conceitos.</div>
                         </button>
                         <button
                           onClick={() => handleGeminiPrompt(selectedItem, 2)}
-                          className="bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 text-left p-2.5 rounded shadow-xs transition group cursor-pointer"
+                          className="bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-blue-200 text-left p-2.5 rounded-lg shadow-xs transition group cursor-pointer"
                         >
-                          <div className="text-xs font-black text-blue-700 uppercase tracking-wider mb-0.5 group-hover:text-blue-800">Grupo 2</div>
-                          <div className="text-[10px] text-slate-400 font-semibold mb-1">Intermediário</div>
-                          <div className="text-[10px] text-slate-500 leading-normal line-clamp-2">Contextualizadas com problemas reais do cotidiano ou tirinhas.</div>
+                          <div className="text-xs font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-0.5 group-hover:text-blue-800 dark:group-hover:text-blue-300">Grupo 2</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold mb-1">Intermediário</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-300 leading-normal line-clamp-2">Contextualizadas com problemas reais do cotidiano ou tirinhas.</div>
                         </button>
                         <button
                           onClick={() => handleGeminiPrompt(selectedItem, 3)}
-                          className="bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-200 text-left p-2.5 rounded shadow-xs transition group cursor-pointer"
+                          className="bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-amber-200 text-left p-2.5 rounded-lg shadow-xs transition group cursor-pointer"
                         >
-                          <div className="text-xs font-black text-amber-700 uppercase tracking-wider mb-0.5 group-hover:text-amber-800">Grupo 3</div>
-                          <div className="text-[10px] text-slate-400 font-semibold mb-1">Avançado / Dissertativo</div>
-                          <div className="text-[10px] text-slate-500 leading-normal line-clamp-2">Discursivas complexas com expectativas de resposta para avaliação crítica.</div>
+                          <div className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-0.5 group-hover:text-amber-800 dark:group-hover:text-amber-300">Grupo 3</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold mb-1">Avançado / Dissertativo</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-300 leading-normal line-clamp-2">Discursivas complexas com expectativas de resposta para avaliação crítica.</div>
                         </button>
                       </div>
                     </div>
@@ -2550,10 +2553,10 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                 )}
               </div>
 
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex justify-end">
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className={`px-5 py-2 text-white rounded transition font-bold text-sm shadow-sm ${
+                  className={`px-5 py-2 text-white rounded-xl transition font-bold text-sm shadow-sm cursor-pointer ${
                     segment === 'Parte Diversificada'
                       ? subject === 'Projeto de Vida' ? 'bg-purple-600 hover:bg-purple-700'
                         : subject === 'Tecnologia e Inovação' ? 'bg-sky-600 hover:bg-sky-700'

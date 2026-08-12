@@ -1,32 +1,35 @@
 import React, { useState } from 'react';
 import { 
-  Menu, 
-  X, 
-  LayoutDashboard, 
+  Home, 
   BookOpen, 
+  FileText, 
   GraduationCap, 
-  Award, 
   Bookmark, 
   HelpCircle, 
   Settings, 
-  Bell, 
   ChevronLeft, 
   ChevronRight,
-  FileSpreadsheet,
-  CheckCircle,
-  Clock,
-  ChevronDown,
-  LogOut
+  PlusCircle,
+  FolderKanban,
+  Check,
+  AlertTriangle,
+  RotateCw,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
-interface AppLayoutProps {
+export interface AppLayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: any) => void;
   favoritesCount: number;
   onShowTour: () => void;
   onReturnToLanding?: () => void;
+  saveStatus?: 'saved' | 'saving' | 'error' | 'idle';
+  currentPlanningTitle?: string;
 }
 
 export default function AppLayout({
@@ -35,46 +38,49 @@ export default function AppLayout({
   setActiveTab,
   favoritesCount,
   onShowTour,
-  onReturnToLanding
+  onReturnToLanding,
+  saveStatus = 'saved',
+  currentPlanningTitle
 }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [isPlanningsExpanded, setIsPlanningsExpanded] = useState(true);
 
-  // WordPress-like Navigation items
-  const menuGroups = [
+  // New UX Navigation Groups
+  const navigationSections = [
     {
-      title: "Painel Principal",
+      title: "GERAL",
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'curriculum', label: 'Matriz Curricular', icon: BookOpen },
+        { id: 'dashboard', label: 'Início', icon: Home },
       ]
     },
     {
-      title: "Planejamento SP",
-      items: [
-        { id: 'plan-generator', label: 'Gerador de Plano', icon: Award },
-        { id: 'recovery-plan', label: 'Plano de Recuperação', icon: GraduationCap },
-        { id: 'repositories', label: 'Banco de Questões', icon: GraduationCap },
+      title: "PLANEJAMENTO",
+      isGroup: true,
+      label: "Planejamentos",
+      icon: FolderKanban,
+      subItems: [
+        { id: 'dashboard', label: 'Meus planejamentos', icon: FolderKanban },
+        { id: 'plan-generator', label: 'Novo planejamento', icon: PlusCircle },
       ]
     },
     {
-      title: "Biblioteca Pessoal",
+      title: "CONSULTA & RECURSOS",
       items: [
-        { id: 'favorites', label: 'Meus Favoritos', icon: Bookmark, badge: favoritesCount > 0 ? favoritesCount : undefined },
+        { id: 'curriculum', label: 'Currículo', icon: BookOpen },
+        { id: 'documents', label: 'Documentos', icon: FileText },
+        { id: 'recovery-plan', label: 'Recuperação', icon: GraduationCap },
+        { id: 'favorites', label: 'Favoritos', icon: Bookmark, badge: favoritesCount > 0 ? favoritesCount : undefined },
       ]
     },
     {
-      title: "Suporte e Ajustes",
+      title: "SISTEMA",
       items: [
-        { id: 'help', label: 'Guia & Ajuda', icon: HelpCircle },
         { id: 'settings', label: 'Configurações', icon: Settings },
+        { id: 'help', label: 'Ajuda', icon: HelpCircle },
       ]
     }
   ];
-
-  // Helper to check if item is active
-  const isActive = (id: string) => activeTab === id;
 
   const handleNavClick = (id: string) => {
     if (id === 'help') {
@@ -86,243 +92,250 @@ export default function AppLayout({
     setIsSidebarOpen(false);
   };
 
-  // Static notification mockup for admin feel
-  const notifications = [
-    { id: 1, title: "Novo Escopo Paulista 2026", desc: "Matriz prioritária integrada com sucesso.", read: false, time: "10m atrás" },
-    { id: 2, title: "Exportador de Planos corrigido", desc: "Tabelas agora mantêm formatação no Google Docs.", read: true, time: "2h atrás" }
-  ];
+  const getBreadcrumbs = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return ['Início', 'Visão Geral'];
+      case 'plan-generator':
+        return ['Planejamentos', 'Novo Planejamento'];
+      case 'curriculum':
+        return ['Currículo', 'Matriz Paulista 2026'];
+      case 'documents':
+        return ['Documentos', 'Gerador de DOCX'];
+      case 'recovery-plan':
+        return ['Recuperação', 'Plano Semestral'];
+      case 'favorites':
+        return ['Favoritos', 'Habilidades Salvas'];
+      case 'settings':
+        return ['Configurações', 'Preferências'];
+      case 'help':
+        return ['Ajuda', 'Central de Treinamento'];
+      default:
+        return ['Início'];
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex transition-colors duration-200" translate="no" lang="pt-BR">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex transition-colors duration-200 selection:bg-sky-100 selection:text-sky-900" translate="no" lang="pt-BR">
       
-      {/* BACKGROUND SHIELD OVERLAY FOR MOBILE SIDEBAR DRAWER */}
+      {/* MOBILE DRAWER OVERLAY */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* LEFT FIXED SIDEBAR */}
+      {/* LEFT SIDEBAR NAVEGAÇÃO */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 z-50 flex flex-col transition-all duration-300 shadow-sm
+        className={`fixed inset-y-0 left-0 bg-slate-900 text-slate-300 z-50 flex flex-col transition-all duration-300 border-r border-slate-800 shadow-md
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'} w-[260px]`}
       >
-        {/* SIDEBAR HEADER / BRAND AREA */}
-        <div className="h-[64px] border-b border-slate-200 dark:border-slate-800 px-4.5 flex items-center justify-between shrink-0">
+        {/* BRAND HEADER */}
+        <div className="h-16 border-b border-slate-800 px-4 flex items-center justify-between shrink-0 bg-slate-950/60">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 bg-gradient-to-tr from-blue-700 to-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
-              <FileSpreadsheet className="h-5 w-5" />
+            <div className="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center text-white shrink-0 font-bold shadow-sm">
+              <BookOpen className="h-5 w-5" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <span className="text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight block">
+                <span className="text-sm font-bold text-white tracking-tight block truncate">
                   Currículo Priorizado
                 </span>
-                <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold tracking-wide uppercase leading-none block mt-0.5">
-                  SEDUC-SP • 2026
+                <span className="text-[10px] text-sky-400 font-semibold tracking-wider uppercase block leading-tight">
+                  Sede SP • 2026
                 </span>
               </div>
             )}
           </div>
           
-          {/* Close drawer on mobile */}
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+            aria-label="Fechar menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* SIDEBAR SCROLLABLE NAVIGATION LINKS */}
-        <div className="flex-1 overflow-y-auto py-5 px-3 space-y-6 no-scrollbar">
-          {menuGroups.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-1.5">
-              {!isCollapsed && (
-                <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3.5 mb-2">
-                  {group.title}
+        {/* SIDEBAR LINKS */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5 no-scrollbar">
+          {navigationSections.map((sec, idx) => (
+            <div key={idx} className="space-y-1">
+              {!isCollapsed && sec.title && (
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1.5">
+                  {sec.title}
                 </h4>
               )}
-              
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const IconComponent = item.icon;
-                  const active = isActive(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleNavClick(item.id)}
-                      className={`w-full flex items-center gap-3 py-2 px-3.5 text-xs font-bold rounded-xl transition-all cursor-pointer group relative
-                        ${active 
-                          ? 'bg-blue-50/70 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400 rounded-l-none' 
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
-                      title={isCollapsed ? item.label : undefined}
-                    >
-                      <IconComponent className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-blue-700 dark:text-blue-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
-                      
-                      {(!isCollapsed || isSidebarOpen) && (
-                        <span className="truncate flex-1 text-left">
-                          {item.label}
-                        </span>
-                      )}
 
-                      {item.badge !== undefined && (!isCollapsed || isSidebarOpen) && (
-                        <span className="text-[9px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full shrink-0">
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {sec.items && sec.items.map((item) => {
+                const IconComp = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center gap-3 py-2.5 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer text-left
+                      ${isActive 
+                        ? 'bg-sky-600/20 text-sky-300 font-bold border-l-3 border-sky-400 rounded-l-none' 
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'}`}
+                  >
+                    <IconComp className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
+                    {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
+                    {item.badge !== undefined && !isCollapsed && (
+                      <span className="text-[10px] font-bold bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {sec.isGroup && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setIsPlanningsExpanded(!isPlanningsExpanded)}
+                    className="w-full flex items-center justify-between py-2.5 px-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FolderKanban className="w-4 h-4 text-slate-400 shrink-0" />
+                      {!isCollapsed && <span>{sec.label}</span>}
+                    </div>
+                    {!isCollapsed && (
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isPlanningsExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+
+                  {(isPlanningsExpanded || isCollapsed) && (
+                    <div className={`${isCollapsed ? '' : 'pl-6 space-y-1'}`}>
+                      {sec.subItems?.map((sub) => {
+                        const SubIcon = sub.icon;
+                        const isSubActive = activeTab === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => handleNavClick(sub.id)}
+                            title={isCollapsed ? sub.label : undefined}
+                            className={`w-full flex items-center gap-2.5 py-2 px-3 text-xs font-medium rounded-md transition-all cursor-pointer text-left
+                              ${isSubActive 
+                                ? 'bg-sky-600/30 text-sky-200 font-bold' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'}`}
+                          >
+                            <SubIcon className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? 'text-sky-300' : 'text-slate-500'}`} />
+                            {!isCollapsed && <span className="truncate">{sub.label}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* SIDEBAR FOOTER (USER PROFILE & RECOLLAPSER) */}
-        <div className="border-t border-slate-200 dark:border-slate-800 p-3 bg-slate-50/50 dark:bg-slate-950/40 space-y-3 shrink-0">
-          
-          {/* User profile identifier block */}
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 shrink-0 font-bold text-sm shadow-2xs">
+        {/* FOOTER */}
+        <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-2 shrink-0">
+          <div className="flex items-center gap-3 px-1.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-bold text-xs shrink-0">
               PR
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Professor(a)</p>
-                <p className="text-[10px] text-slate-400 truncate">Planejamento Ativo</p>
+                <p className="text-xs font-semibold text-slate-200 truncate">Professor(a)</p>
+                <p className="text-[10px] text-slate-400 truncate">Rede Estadual SP</p>
               </div>
             )}
           </div>
 
-          {/* Option to return to landing presentation */}
           {onReturnToLanding && (
             <button
               onClick={onReturnToLanding}
-              className="w-full flex items-center justify-center py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800/40 rounded-xl text-slate-600 dark:text-slate-300 transition-colors cursor-pointer text-[10px] font-extrabold tracking-wider uppercase gap-1.5"
-              title="Voltar para a página de apresentação"
+              className="w-full flex items-center justify-center py-1.5 bg-slate-800/60 hover:bg-slate-800 rounded-md text-slate-300 text-[11px] font-medium gap-1.5 cursor-pointer transition"
+              title="Apresentação institucional"
             >
               <LogOut className="w-3.5 h-3.5 text-slate-400" />
-              {!isCollapsed && <span>Apresentação</span>}
+              {!isCollapsed && <span>Página Inicial</span>}
             </button>
           )}
 
-          {/* Collapser controller for desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex w-full items-center justify-center py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer text-[10px] font-extrabold tracking-wider uppercase gap-1"
+            className="hidden lg:flex w-full items-center justify-center py-1.5 bg-slate-800/30 hover:bg-slate-800/80 rounded-md text-slate-400 hover:text-slate-200 text-[11px] font-medium gap-1 cursor-pointer transition"
           >
-            {isCollapsed ? (
-              <>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </>
-            ) : (
-              <>
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Recolher Menu
-              </>
-            )}
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Recolher</span></>}
           </button>
         </div>
       </aside>
 
-      {/* RIGHT MAIN CONTENT CONTAINER */}
-      <div className={`flex-1 min-w-0 min-h-screen flex flex-col transition-all duration-300
-        ${isCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}
-      >
+      {/* MAIN CONTAINER */}
+      <div className={`flex-1 min-w-0 min-h-screen flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}>
         
-        {/* TOP ADMIN BAR HEADER */}
-        <header className="h-[64px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
+        {/* HEADER BAR */}
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
           
           <div className="flex items-center gap-4">
-            {/* Hamburger button for mobile / smaller screens */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none cursor-pointer"
+              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               aria-label="Abrir menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Breadcrumb title display */}
-            <div className="hidden sm:block">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Painel do Professor
-              </span>
-              <h2 className="text-base font-black text-slate-800 dark:text-slate-100 leading-none mt-1">
-                {activeTab === 'dashboard' && 'Dashboard do Professor'}
-                {activeTab === 'curriculum' && 'Matriz Curricular Paulista'}
-                {activeTab === 'plan-generator' && 'Gerador de Planos de Aula'}
-                {activeTab === 'recovery-plan' && 'Plano de Recuperação Semestral'}
-                {activeTab === 'repositories' && 'Banco de Questões SEDUC'}
-                {activeTab === 'favorites' && 'Habilidades Favoritas'}
-                {activeTab === 'settings' && 'Ajustes e Aparência'}
-                {activeTab === 'help' && 'Central de Ajuda'}
-              </h2>
+            {/* BREADCRUMBS */}
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {getBreadcrumbs().map((crumb, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && <span>/</span>}
+                  <span className={idx === getBreadcrumbs().length - 1 ? 'text-slate-900 dark:text-slate-100 font-bold' : ''}>
+                    {crumb}
+                  </span>
+                </React.Fragment>
+              ))}
             </div>
           </div>
 
-          {/* Quick Actions & Profiles */}
-          <div className="flex items-center gap-3">
+          {/* HEADER RIGHT STATUS AND UTILITIES */}
+          <div className="flex items-center gap-4">
             
-            {/* Theme switch button */}
+            {/* AUTOSAVE INDICATOR WHEN IN PLANNER */}
+            {activeTab === 'plan-generator' && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-50 dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                {saveStatus === 'saving' && (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 text-sky-600 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                )}
+                {saveStatus === 'saved' && (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-slate-600 dark:text-slate-300">Alterações salvas</span>
+                  </>
+                )}
+                {saveStatus === 'error' && (
+                  <>
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-amber-700 dark:text-amber-400 font-semibold">Não foi possível salvar</span>
+                  </>
+                )}
+              </div>
+            )}
+
             <ThemeToggle />
 
-            {/* Quick Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer relative"
-                aria-label="Notificações"
-              >
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-              </button>
-
-              {/* Popup block for notifications */}
-              {showNotifications && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                  <div className="absolute right-0 mt-2.5 w-80 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-4 space-y-3.5">
-                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-                      <span className="text-xs font-black text-slate-800 dark:text-slate-200">Alertas Recentes</span>
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 cursor-pointer">Lidos</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {notifications.map(n => (
-                        <div key={n.id} className="text-left space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
-                              {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>}
-                              {n.title}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-mono">{n.time}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">{n.desc}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+            <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>SEDUC-SP</span>
             </div>
-
-            {/* School identity label */}
-            <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Rede Estadual SP
-              </span>
-            </div>
-
           </div>
         </header>
 
-        {/* SCROLLABLE CENTRAL CONTENT BLOCK */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
+        {/* SCROLLABLE MAIN CONTENT */}
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

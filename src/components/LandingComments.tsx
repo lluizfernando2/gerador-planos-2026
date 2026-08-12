@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MessageSquare, Send, CheckCircle2, ThumbsUp, Sparkles, MessageCircleHeart } from 'lucide-react';
+import { sanitizeInput, containsPromptInjection } from '../lib/securityPrompt';
 
 export interface CommentItem {
   id: string;
@@ -51,12 +52,22 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      showToast('Por favor, informe seu nome ou identificação.');
+
+    const cleanName = sanitizeInput(name);
+    const cleanRole = sanitizeInput(role);
+    const cleanText = sanitizeInput(text);
+
+    if (!cleanName.trim()) {
+      showToast('Por favor, informe um nome ou identificação válido.');
       return;
     }
-    if (!text.trim()) {
-      showToast('Por favor, escreva seu comentário ou avaliação.');
+    if (!cleanText.trim()) {
+      showToast('Por favor, escreva um comentário ou avaliação válido.');
+      return;
+    }
+
+    if (containsPromptInjection(text)) {
+      showToast('O texto fornecido contém padrões inválidos de entrada.');
       return;
     }
 
@@ -67,10 +78,10 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(),
-          role: role.trim() || 'Docente da Rede Estadual',
+          name: cleanName,
+          role: cleanRole || 'Docente da Rede Estadual',
           rating,
-          text: text.trim()
+          text: cleanText
         })
       });
 
@@ -129,10 +140,10 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
             <span>Mural da Comunidade Docente</span>
           </span>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Avaliações & Sugestões de Usuários Reais
+            Avaliações & Depoimentos dos Professores
           </h2>
           <p className="text-slate-600 text-sm md:text-base leading-relaxed">
-            Nenhuma avaliação é simulada ou inventada. Veja as contribuições e opiniões reais deixadas por professores e educadores da rede.
+            Veja a opinião de colegas educadores da rede estadual e compartilhe sua experiência com a plataforma.
           </p>
 
           {/* RATING OVERVIEW BADGE */}
@@ -144,7 +155,7 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
             </div>
             <span className="text-slate-800 font-black text-lg">{averageRating}</span>
             <span className="text-slate-500 text-xs font-semibold">
-              ({comments.length} {comments.length === 1 ? 'avaliação real' : 'avaliações reais'})
+              ({comments.length} {comments.length === 1 ? 'avaliação' : 'avaliações'})
             </span>
           </div>
         </div>
@@ -157,10 +168,10 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
             <div className="border-b border-slate-100 pb-4">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <MessageCircleHeart className="w-5 h-5 text-blue-600" />
-                <span>Deixe sua avaliação real</span>
+                <span>Deixe sua avaliação</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Sua frase será armazenada publicamente para que todos os usuários consigam visualizar.
+                Seu comentário e avaliação serão compartilhados com a comunidade docente.
               </p>
             </div>
 
@@ -246,7 +257,7 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
                 className="w-full bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-extrabold py-3 px-4 rounded-xl text-xs transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? 'Publicando...' : 'Publicar Avaliação Real'}</span>
+                <span>{isSubmitting ? 'Publicando...' : 'Publicar Avaliação'}</span>
               </button>
             </form>
           </div>
@@ -260,7 +271,7 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
                   {comments.length}
                 </span>
               </h3>
-              <span className="text-xs text-slate-500">Armazenamento em tempo real</span>
+              <span className="text-xs text-slate-500">Mural em tempo real</span>
             </div>
 
             {isLoading ? (
@@ -269,22 +280,22 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
                 <p className="text-xs text-slate-500">Carregando avaliações dos usuários...</p>
               </div>
             ) : comments.length === 0 ? (
-              /* EMPTY STATE WHEN NO REAL COMMENTS HAVE BEEN SUBMITTED YET */
+              /* EMPTY STATE WHEN NO COMMENTS HAVE BEEN SUBMITTED YET */
               <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center space-y-4">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
                   <h4 className="font-extrabold text-slate-900 text-base">
-                    Nenhuma avaliação inventada!
+                    Mural de Avaliações
                   </h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Não exibimos comentários fictícios. Todas as avaliações deste mural pertencem a <strong>usuários e professores reais</strong>.
+                    Seja o primeiro professor a compartilhar sua experiência, sugestões e opinião sobre a plataforma!
                   </p>
                 </div>
                 <div className="pt-2">
                   <span className="inline-block text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-4 py-2 rounded-xl">
-                    ✏️ Seja o primeiro a deixar uma avaliação no formulário ao lado!
+                    ✏️ Preencha o formulário ao lado para publicar seu comentário
                   </span>
                 </div>
               </div>
@@ -303,7 +314,7 @@ export default function LandingComments({ showToast }: LandingCommentsProps) {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <h4 className="font-extrabold text-sm text-slate-900">{item.name}</h4>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" title="Usuário Real Verificado" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" title="Professor Verificado" />
                           </div>
                           <p className="text-[11px] text-slate-500 font-medium">{item.role}</p>
                         </div>

@@ -29,7 +29,7 @@ export default function A4MarginsModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden my-6"
+            className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full overflow-hidden my-6 transition-colors"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 p-5 text-white relative">
@@ -51,10 +51,10 @@ export default function A4MarginsModal({
             </div>
 
             {/* Content Body */}
-            <div className="p-6 space-y-4 bg-slate-50/50">
+            <div className="p-6 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margem Superior (cm)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Margem Superior (cm)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -62,11 +62,11 @@ export default function A4MarginsModal({
                     max="5.0"
                     value={marginSettings.top}
                     onChange={(e) => setMarginSettings(prev => ({ ...prev, top: parseFloat(e.target.value) || 1.27 }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margem Inferior (cm)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Margem Inferior (cm)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -74,11 +74,11 @@ export default function A4MarginsModal({
                     max="5.0"
                     value={marginSettings.bottom}
                     onChange={(e) => setMarginSettings(prev => ({ ...prev, bottom: parseFloat(e.target.value) || 1.27 }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margem Esquerda (cm)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Margem Esquerda (cm)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -86,11 +86,11 @@ export default function A4MarginsModal({
                     max="5.0"
                     value={marginSettings.left}
                     onChange={(e) => setMarginSettings(prev => ({ ...prev, left: parseFloat(e.target.value) || 1.27 }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margem Direita (cm)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Margem Direita (cm)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -98,21 +98,21 @@ export default function A4MarginsModal({
                     max="5.0"
                     value={marginSettings.right}
                     onChange={(e) => setMarginSettings(prev => ({ ...prev, right: parseFloat(e.target.value) || 1.27 }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-800 font-medium">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200/80 dark:border-amber-900/50 text-[11px] text-amber-800 dark:text-amber-200 font-medium">
                 💡 <strong>Dica de Impressão:</strong> O padrão oficial para o modelo compactado é de <strong>1,27 cm</strong> para todas as margens.
               </div>
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-100 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <div className="bg-slate-100 dark:bg-slate-900/80 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <button
                 onClick={handleResetDefaults}
-                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> Restaurar Padrão (1,27cm)
               </button>

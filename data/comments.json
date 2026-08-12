@@ -1,0 +1,102 @@
+[
+  {
+    "id": "1786506671747-axr2d",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "12/08/2026",
+    "timestamp": 1786506671764,
+    "likes": 0
+  },
+  {
+    "id": "1786506152116-amfee",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "12/08/2026",
+    "timestamp": 1786506152133,
+    "likes": 0
+  },
+  {
+    "id": "1786505701382-dt5uh",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "12/08/2026",
+    "timestamp": 1786505701405,
+    "likes": 0
+  },
+  {
+    "id": "1786491719159-m3n35",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "11/08/2026",
+    "timestamp": 1786491719177,
+    "likes": 0
+  },
+  {
+    "id": "1786491598714-wygzb",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "11/08/2026",
+    "timestamp": 1786491598715,
+    "likes": 0
+  },
+  {
+    "id": "1786491449908-zt6pw",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "11/08/2026",
+    "timestamp": 1786491449923,
+    "likes": 0
+  },
+  {
+    "id": "1786403414695-kc35w",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "10/08/2026",
+    "timestamp": 1786403414715,
+    "likes": 0
+  },
+  {
+    "id": "1786403151573-tzhvz",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "10/08/2026",
+    "timestamp": 1786403151593,
+    "likes": 0
+  },
+  {
+    "id": "1786403130066-nvel9",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "10/08/2026",
+    "timestamp": 1786403130066,
+    "likes": 0
+  },
+  {
+    "id": "1786403085841-bdqn3",
+    "name": "Professor Teste",
+    "role": "Docente",
+    "rating": 5,
+    "text": "Excelente material didático.",
+    "date": "10/08/2026",
+    "timestamp": 1786403085857,
+    "likes": 0
+  }
+]

@@ -180,19 +180,19 @@ export default function BloomTaxonomyTable() {
       </div>
 
       {/* Search Input Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors">
         <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Pesquisar verbo (ex: analisar, identificar, criar)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-900 transition"
           />
         </div>
-        <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-          <Sparkles className="h-4 w-4 text-emerald-600" />
+        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
+          <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           <span>Clique em qualquer verbo para copiá-lo para a área de transferência</span>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function BloomTaxonomyTable() {
         {filteredLevels.map((level) => (
           <div
             key={level.level}
-            className={`bg-white rounded-2xl border ${level.borderColor} p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between`}
+            className={`bg-white dark:bg-slate-800 rounded-2xl border ${level.borderColor} dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between`}
           >
             <div>
               {/* Level Header */}
@@ -210,24 +210,24 @@ export default function BloomTaxonomyTable() {
                 <span className={`px-2.5 py-1 rounded-lg text-xs font-black border ${level.badgeBg}`}>
                   Nível {level.level}
                 </span>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {level.category}
                 </span>
               </div>
 
-              <h3 className="text-base font-black text-slate-900 mb-1">
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mb-1">
                 {level.name}
               </h3>
-              <p className="text-xs text-slate-600 mb-4 font-medium leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 font-medium leading-relaxed">
                 {level.description}
               </p>
 
               {/* Verbs List */}
               <div className="mb-4">
-                <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
                   <span>Verbos de Ação ({level.verbs.length})</span>
                 </h4>
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700">
                   {level.verbs.length > 0 ? (
                     level.verbs.map((verb) => (
                       <button
@@ -236,7 +236,7 @@ export default function BloomTaxonomyTable() {
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
                           copiedVerb === verb
                             ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-white hover:bg-emerald-100 text-slate-700 hover:text-emerald-900 border border-slate-200'
+                            : 'bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-700 dark:text-slate-200 hover:text-emerald-900 dark:hover:text-emerald-200 border border-slate-200 dark:border-slate-700'
                         }`}
                         title="Clique para copiar este verbo"
                       >
@@ -256,8 +256,8 @@ export default function BloomTaxonomyTable() {
             </div>
 
             {/* Examples Footer */}
-            <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
-              <strong className="text-slate-800 font-bold block mb-1">Exemplo de Aplicação:</strong>
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+              <strong className="text-slate-800 dark:text-slate-200 font-bold block mb-1">Exemplo de Aplicação:</strong>
               <ul className="list-disc list-inside space-y-1">
                 {level.examples.map((ex, idx) => (
                   <li key={idx} className="leading-tight">{ex}</li>
@@ -269,66 +269,66 @@ export default function BloomTaxonomyTable() {
       </div>
 
       {/* Comprehensive Reference Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-        <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-emerald-700" />
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm space-y-4 transition-colors">
+        <h3 className="text-base font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
           Tabela Comparativa Completa da Taxonomia de Bloom (Revisão Ferraz & Belhot)
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs font-sans">
             <thead>
-              <tr className="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
-                <th className="p-3 border border-slate-300">Nível / Domínio</th>
-                <th className="p-3 border border-slate-300">Definição do Processo Cognitivo</th>
-                <th className="p-3 border border-slate-300">Verbos de Ação Principais</th>
-                <th className="p-3 border border-slate-300">Produtos / Evidências Esperadas</th>
+              <tr className="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-b border-slate-300 dark:border-slate-700 font-bold">
+                <th className="p-3 border border-slate-300 dark:border-slate-700">Nível / Domínio</th>
+                <th className="p-3 border border-slate-300 dark:border-slate-700">Definição do Processo Cognitivo</th>
+                <th className="p-3 border border-slate-300 dark:border-slate-700">Verbos de Ação Principais</th>
+                <th className="p-3 border border-slate-300 dark:border-slate-700">Produtos / Evidências Esperadas</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-blue-900 bg-blue-50/50">1. Conhecimento / Lembrar</td>
-                <td className="p-3 border border-slate-200">Reconhecer, memorizar e recuperar termos, fatos, convenções e definições.</td>
-                <td className="p-3 border border-slate-200 font-semibold">definir, listar, nomear, identificar, descrever, apontar, memorizar, citar</td>
-                <td className="p-3 border border-slate-200">Listas, definições, questionários de verificação, identificação de termos.</td>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-blue-900 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-950/30">1. Conhecimento / Lembrar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Reconhecer, memorizar e recuperar termos, fatos, convenções e definições.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">definir, listar, nomear, identificar, descrever, apontar, memorizar, citar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Listas, definições, questionários de verificação, identificação de termos.</td>
               </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-teal-900 bg-teal-50/50">2. Compreensão / Entender</td>
-                <td className="p-3 border border-slate-200">Explicar, interpretar, classificar e exemplificar conceitos e ideias centrais.</td>
-                <td className="p-3 border border-slate-200 font-semibold">explicar, interpretar, resumir, classificar, converter, dar exemplos, reescrever</td>
-                <td className="p-3 border border-slate-200">Resumos, paráfrases, diagramas explicativos, classificações de itens.</td>
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-teal-900 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/30">2. Compreensão / Entender</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Explicar, interpretar, classificar e exemplificar conceitos e ideias centrais.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">explicar, interpretar, resumir, classificar, converter, dar exemplos, reescrever</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Resumos, paráfrases, diagramas explicativos, classificações de itens.</td>
               </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-emerald-900 bg-emerald-50/50">3. Aplicação / Aplicar</td>
-                <td className="p-3 border border-slate-200">Usar o conhecimento ou métodos em situações práticas, problemas e contextos novos.</td>
-                <td className="p-3 border border-slate-200 font-semibold">aplicar, demonstrar, resolver, calcular, executar, utilizar, construir, dramatizar</td>
-                <td className="p-3 border border-slate-200">Resolução de problemas, simulações, cálculos, uso prático de regras.</td>
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-emerald-900 dark:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/30">3. Aplicação / Aplicar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Usar o conhecimento ou métodos em situações práticas, problemas e contextos novos.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">aplicar, demonstrar, resolver, calcular, executar, utilizar, construir, dramatizar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Resolução de problemas, simulações, cálculos, uso prático de regras.</td>
               </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-indigo-900 bg-indigo-50/50">4. Análise / Analisar</td>
-                <td className="p-3 border border-slate-200">Decompor informações em partes, identificar relações, padrões e estruturas.</td>
-                <td className="p-3 border border-slate-200 font-semibold">analisar, comparar, contrastar, diferenciar, deduzir, esquematizar, questionar</td>
-                <td className="p-3 border border-slate-200">Mapas conceituais, quadros comparativos, gráficos de causa e efeito.</td>
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-indigo-900 dark:text-indigo-300 bg-indigo-50/50 dark:bg-indigo-950/30">4. Análise / Analisar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Decompor informações em partes, identificar relações, padrões e estruturas.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">analisar, comparar, contrastar, diferenciar, deduzir, esquematizar, questionar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Mapas conceituais, quadros comparativos, gráficos de causa e efeito.</td>
               </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-purple-900 bg-purple-50/50">5. Criação / Criar</td>
-                <td className="p-3 border border-slate-200">Reorganizar elementos para produzir algo novo, propor planos e elaborar produtos.</td>
-                <td className="p-3 border border-slate-200 font-semibold">criar, elaborar, formular, planejar, compor, propor, desenhar, inventar</td>
-                <td className="p-3 border border-slate-200">Planos de ação, protótipos, ensaios autorais, projetos de intervenção.</td>
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-purple-900 dark:text-purple-300 bg-purple-50/50 dark:bg-purple-950/30">5. Criação / Criar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Reorganizar elementos para produzir algo novo, propor planos e elaborar produtos.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">criar, elaborar, formular, planejar, compor, propor, desenhar, inventar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Planos de ação, protótipos, ensaios autorais, projetos de intervenção.</td>
               </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3 border border-slate-200 font-bold text-amber-900 bg-amber-50/50">6. Avaliação / Avaliar</td>
-                <td className="p-3 border border-slate-200">Emitir julgamentos fundamentados com base em critérios, evidências e padrões.</td>
-                <td className="p-3 border border-slate-200 font-semibold">avaliar, criticar, justificar, defender, concluir, validar, decidir, julgar</td>
-                <td className="p-3 border border-slate-200">Resenhas críticas, relatórios de parecer, debates fundamentados.</td>
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-bold text-amber-900 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/30">6. Avaliação / Avaliar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Emitir julgamentos fundamentados com base em critérios, evidências e padrões.</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700 font-semibold">avaliar, criticar, justificar, defender, concluir, validar, decidir, julgar</td>
+                <td className="p-3 border border-slate-200 dark:border-slate-700">Resenhas críticas, relatórios de parecer, debates fundamentados.</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Bibliography footnote */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
-          <strong className="text-slate-800 font-bold block mb-1">Referências Bibliográficas Oficiais:</strong>
+        <div className="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+          <strong className="text-slate-800 dark:text-slate-200 font-bold block mb-1">Referências Bibliográficas Oficiais:</strong>
           <p>• BLOOM, B. S. et al. <strong>Taxonomy of educational objectives</strong>. New York: David Mckay, 1956. 262 p.</p>
           <p>• FERRAZ, Ana Paula do C. M. e BELHOT, Renato V.. <strong>Taxonomia de Bloom: revisão teórica e apresentação das adequações do instrumento para definição de objetivos instrucionais</strong>. Gest. Prod., São Carlos, v. 17, n. 2, p. 421-431, 2010.</p>
         </div>

@@ -29,8 +29,11 @@ import { OFFICIAL_RECOVERY_DATA_2026 } from './data/recoveryData2026';
 import { LOGO_SP_BASE64 } from './data/logoSp';
 import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from './data/tecnicoData';
 import { generatePixPayload } from './lib/pix';
+import { pixService } from './features/pix/pixService';
 import LandingComments from './components/LandingComments';
 import buildInfo from './buildInfo.json';
+import { buildSecuredPrompt } from './lib/securityPrompt';
+import { documentEngine } from './features/documents/documentEngine';
 
 function mapProyectoVidaToCurriculum(item: any): CurriculumItem {
   return {
@@ -897,15 +900,8 @@ export default function App() {
   const [needsAuth, setNeedsAuth] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Tracks whether the user has entered the platform past the landing page
-  const [hasEntered, setHasEntered] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('curr_priorizado_entered');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Tracks whether the user has entered the platform past the landing page (always starts false on page refresh)
+  const [hasEntered, setHasEntered] = useState<boolean>(false);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'dashboard' | 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'settings' | 'help'>('dashboard');
@@ -1129,6 +1125,10 @@ export default function App() {
   
   // Real-time UTC Time Clock display
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Tracks Pix copy states
+  const [copiedPixCode, setCopiedPixCode] = useState(false);
+  const [copiedPixKey, setCopiedPixKey] = useState(false);
 
   useEffect(() => {
     // Sync with compiled build version if a new build was deployed
@@ -2627,7 +2627,7 @@ export default function App() {
 
     const skillsText = Array.from(new Set(previous.map((l: any) => l.habilidade || '').filter(Boolean))).join('\n') || 'Retomada de habilidades críticas do Currículo Paulista.';
 
-    const promptText = `Atue como um Professor Mentor especialista do Currículo Paulista de 2026.
+    const rawPromptText = `Atue como um Professor Mentor especialista do Currículo Paulista de 2026.
 Preciso de uma Atividade Verificadora de Aprendizagem de alta qualidade e pronta para aplicação, focada nos conteúdos ministrados nas últimas aulas.
 
 Aqui estão as informações do plano:
@@ -2651,6 +2651,8 @@ Instruções para Elaboração da Atividade Verificadora:
 5. **Gabarito**: Forneça o gabarito detalhado com orientações para o professor fazer a devolutiva (feedback rápido).
 
 Gere o documento formatado em Markdown pronto para ser copiado e impresso.`;
+
+    const promptText = buildSecuredPrompt(rawPromptText);
 
     navigator.clipboard.writeText(promptText)
       .then(() => {
@@ -2956,136 +2958,49 @@ ${tablesCleanHtml}
     }, 1000);
   };
 
-  const handleDownloadDoc = () => {
-    if (!generatedDocHtml) {
+  const handleDownloadDoc = async () => {
+    if (!generatedDocHtml && (!generatedWeeks || generatedWeeks.length === 0)) {
       showToast("Gere um documento primeiro.", true);
       return;
     }
-    const cleanDocHtml = sanitizeHtmlForExport(generatedDocHtml);
-    const dynamicStyle = `
-              @page WordSection1 {
-                  size: 29.7cm 21.0cm;
-                  mso-page-orientation: landscape;
-                  margin: ${marginSettings.top}cm ${marginSettings.right}cm ${marginSettings.bottom}cm ${marginSettings.left}cm;
-                  mso-header-margin: 35.4pt;
-                  mso-footer-margin: 35.4pt;
-                  mso-paper-source: 0;
-              }
-              div.WordSection1 { page: WordSection1; }
-              
-              body, p, div, li, span, td {
-                  font-family: Cambria, 'Cambria Math', Georgia, serif !important;
-                  font-size: 11pt !important;
-                  font-weight: normal !important;
-                  line-height: 1.15 !important;
-                  color: #000000;
-                  margin-top: 0pt !important;
-                  margin-bottom: 0pt !important;
-                  padding-left: 0pt;
-                  padding-right: 0pt;
-                  text-indent: 0pt;
-              }
-              strong, b, th, thead td, .tableHeader, h1, h2, h3, h4 {
-                  font-family: Cambria, 'Cambria Math', Georgia, serif !important;
-                  font-size: 12pt !important;
-                  font-weight: bold !important;
-              }
-              p {
-                  margin-top: 0pt !important;
-                  margin-bottom: 0pt !important;
-                  line-height: 1.15 !important;
-              }
-              ul { margin-top: 0; margin-bottom: 0; padding-left: 15pt; }
-              li { margin-bottom: 0pt; line-height: 1.15; }
 
-              table {
-                  table-layout: fixed !important;
-                  mso-table-layout-alt: fixed !important;
-                  border-collapse: collapse !important;
-                  width: 100% !important;
-                  margin-left: 0 !important;
-                  margin-right: auto !important;
-                  margin-bottom: 12pt !important;
-                  border: 1px solid #000000 !important;
-                  mso-table-lspace: 0pt !important;
-                  mso-table-rspace: 0pt !important;
-                  mso-padding-alt: 0pt 0pt 0pt 0pt !important;
-              }
+    try {
+      showToast("Gerando arquivo DOCX nativo...");
+      const docxBlob = await documentEngine.generateNativeDocxBlob({
+        escola: schoolName || 'E.E. Unidade Escolar',
+        docente: docenteName || 'Docente',
+        segmento: selectedSegment || 'Ensino Fundamental II',
+        componente: planSubject || 'Componente Curricular',
+        serie: planGrade || 'Ano/Série',
+        bimestre: planBimester || 'Bimestre',
+        semanas: generatedWeeks,
+        trabalhosDate: trabalhosDate,
+        avaliacoesDate: avaliacoesDate,
+        format: planFormat,
+        margins: marginSettings,
+      });
 
-              th, thead td, .tableHeader, tr.header-row td, tr.bg-header td, tr[style*="background-color: #1b365d"] td, tr[style*="background-color: #00b0f0"] td, tr[style*="background-color: #1e3a8a"] td, tr[style*="background-color: #f3e8ff"] td, tr[style*="background-color: #e0f2fe"] td, tr[style*="background-color: #ffe4e6"] td, tr[style*="background-color: #fef3c7"] td {
-                  font-family: Cambria, 'Cambria Math', Georgia, serif !important;
-                  font-size: 12pt !important;
-                  font-weight: bold !important;
-                  color: #FFFFFF !important;
-                  background-color: #4472C4 !important;
-                  text-align: center !important;
-                  border: 1px solid #000000 !important;
-                  padding: 4px 6px !important;
-                  margin-top: 0pt !important;
-                  margin-bottom: 0pt !important;
-                  word-wrap: break-word !important;
-                  overflow-wrap: break-word !important;
-                  word-break: break-word !important;
-                  mso-style-parent: "" !important;
-              }
-
-              td, .tableCell {
-                  font-family: Cambria, 'Cambria Math', Georgia, serif !important;
-                  font-size: 11pt !important;
-                  color: #000000 !important;
-                  border: 1px solid #000000 !important;
-                  padding: 4px 6px !important;
-                  margin-top: 0pt !important;
-                  margin-bottom: 0pt !important;
-                  vertical-align: top;
-                  word-wrap: break-word !important;
-                  overflow-wrap: break-word !important;
-                  word-break: break-word !important;
-                  mso-style-parent: "" !important;
-              }
-    `;
-
-    const fullHtml = `<html xmlns:v="urn:schemas-microsoft-com:vml"
-      xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
-      xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-          <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-          <meta name="ProgId" content="Word.Document">
-          <meta name="Generator" content="Microsoft Word 15">
-          <meta name="Originator" content="Microsoft Word 15">
-          <!--[if gte mso 9]>
-          <xml>
-              <w:WordDocument>
-                  <w:View>Print</w:View>
-                  <w:Zoom>100</w:Zoom>
-                  <w:DoNotOptimizeForCustomXSL/>
-                  <w:DoNotShredHTML/>
-                  <w:Compatibility>
-                      <w:DoNotAutofitConstrainedTables/>
-                      <w:BreakWrappedTables/>
-                      <w:SnapToGridInCell/>
-                      <w:DoNotExpandShiftReturn/>
-                  </w:Compatibility>
-                  <w:BrowserLevel>MicrosoftInternetExplorer4</w:BrowserLevel>
-              </w:WordDocument>
-          </xml>
-          <![endif]-->
-          <title>Plano de Ensino 2026</title>
-          <style>
-              ${dynamicStyle}
-          </style>
-      </head>
-      <body>
-          <div class="WordSection1">
-              ${cleanDocHtml}
-          </div>
-      </body>
-      </html>`;
-    const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword;charset=utf-8' });
-    triggerFileDownload(blob, `Plano_Ensino_2026_${planFormat}.doc`);
-    showToast("Arquivo Word (.doc) baixado com o padrão estipulado!");
+      triggerFileDownload(docxBlob, `Plano_Ensino_2026_${planFormat}.docx`);
+      showToast("Documento DOCX NATIVO editável baixado com sucesso!");
+    } catch (error) {
+      console.error("[handleDownloadDoc] Error generating native DOCX:", error);
+      showToast("Erro ao gerar DOCX nativo. Utilizando exportador MSO...", true);
+      // Fallback to legacy MSO Word export if any runtime issue occurs
+      const legacyBlob = documentEngine.buildWordDownloadBlob({
+        escola: schoolName || 'E.E. Unidade Escolar',
+        docente: docenteName || 'Docente',
+        segmento: selectedSegment || 'Ensino Fundamental II',
+        componente: planSubject || 'Componente Curricular',
+        serie: planGrade || 'Ano/Série',
+        bimestre: planBimester || 'Bimestre',
+        semanas: generatedWeeks,
+        trabalhosDate: trabalhosDate,
+        avaliacoesDate: avaliacoesDate,
+        format: planFormat,
+        margins: marginSettings,
+      });
+      triggerFileDownload(legacyBlob, `Plano_Ensino_2026_${planFormat}.doc`);
+    }
   };
 
   const handlePrintPdf = () => {
@@ -3668,16 +3583,11 @@ ${tablesCleanHtml}
     };
   };
 
-  // Tracks Pix copy states
-  const [copiedPixCode, setCopiedPixCode] = useState(false);
-  const [copiedPixKey, setCopiedPixKey] = useState(false);
-
   // Generates valid EMV BR Code Pix string
-  const pixPayload = generatePixPayload({
+  const pixPayload = pixService.generatePayload({
     key: '272c5784-fca9-457d-b6de-7ebaaf3e888a',
     name: 'APOIO PROFESSOR',
-    city: 'SAO PAULO',
-    description: 'Apoio Curriculo Priorizado'
+    city: 'SAO PAULO'
   });
 
   const handleCopyPixCode = () => {
