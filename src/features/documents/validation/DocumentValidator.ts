@@ -28,6 +28,21 @@ export class DocumentValidator {
 
     // 2. Page Bounds Validation
     const { widthMm, heightMm, marginsMm } = model.page;
+    const pageValues = [
+      widthMm,
+      heightMm,
+      marginsMm.top,
+      marginsMm.bottom,
+      marginsMm.left,
+      marginsMm.right,
+    ];
+    if (pageValues.some((value) => !Number.isFinite(value) || value < 0)) {
+      issues.push({
+        type: 'error',
+        message: 'Dimensões e margens devem ser números finitos não negativos',
+        field: 'page',
+      });
+    }
     if (widthMm <= 0 || heightMm <= 0) {
       issues.push({ type: 'error', message: 'Dimensões da página devem ser maiores que zero', field: 'page.dimensions' });
     }
@@ -65,9 +80,18 @@ export class DocumentValidator {
       return;
     }
 
+    if (block.colWidthsPercent.some((width) => !Number.isFinite(width) || width <= 0)) {
+      issues.push({
+        type: 'error',
+        message: `Tabela #${index} possui largura de coluna inválida; todas devem ser finitas e maiores que zero`,
+        field: `blocks[${index}].colWidthsPercent`,
+      });
+      return;
+    }
+
     const sumPct = block.colWidthsPercent.reduce((a, b) => a + b, 0);
     if (Math.abs(sumPct - 100) > 1) {
-      issues.push({ type: 'warning', message: `Soma das porcentagens das colunas da Tabela #${index} é ${sumPct}% (esperado ~100%)`, field: `blocks[${index}].colWidthsPercent` });
+      issues.push({ type: 'error', message: `Soma das porcentagens das colunas da Tabela #${index} é ${sumPct}% (esperado 100%)`, field: `blocks[${index}].colWidthsPercent` });
     }
 
     if (!block.rows || block.rows.length === 0) {
@@ -78,6 +102,28 @@ export class DocumentValidator {
     block.rows.forEach((row, rowIdx) => {
       if (!row.cells || row.cells.length === 0) {
         issues.push({ type: 'error', message: `Tabela #${index}, Linha #${rowIdx} está sem células`, field: `blocks[${index}].rows[${rowIdx}]` });
+        return;
+      }
+
+      const occupiedColumns = row.cells.reduce((total, cell) => {
+        const span = cell.colSpan ?? 1;
+        if (!Number.isInteger(span) || span < 1) {
+          issues.push({
+            type: 'error',
+            message: `Tabela #${index}, Linha #${rowIdx} contém colSpan inválido`,
+            field: `blocks[${index}].rows[${rowIdx}].cells`,
+          });
+          return total;
+        }
+        return total + span;
+      }, 0);
+
+      if (occupiedColumns !== block.colWidthsPercent.length) {
+        issues.push({
+          type: 'error',
+          message: `Tabela #${index}, Linha #${rowIdx} ocupa ${occupiedColumns} colunas, mas a grade define ${block.colWidthsPercent.length}`,
+          field: `blocks[${index}].rows[${rowIdx}].cells`,
+        });
       }
     });
   }
