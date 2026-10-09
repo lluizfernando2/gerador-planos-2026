@@ -84,13 +84,7 @@ export class DocxDocumentEngine {
    * Generates a native OOXML DOCX Blob directly from Planning Data
    */
   public async generateNativeDocxBlob(data: DocumentModelData): Promise<Blob> {
-    const docModel: DocumentModel = this.adapter.adapt(data);
-    const validation = DocumentValidator.validateModel(docModel);
-
-    if (!validation.isValid) {
-      console.warn('[DocxDocumentEngine] Validation warnings on DocumentModel:', validation.issues);
-    }
-
+    const docModel = this.createValidatedModel(data);
     const blob = await this.nativeRenderer.renderToBlob(docModel);
     const binaryValidation = await DocumentValidator.validateDocxBinary(blob);
 
@@ -105,13 +99,7 @@ export class DocxDocumentEngine {
    * Generates a native OOXML DOCX Buffer directly from Planning Data (Node.js environment)
    */
   public async generateNativeDocxBuffer(data: DocumentModelData): Promise<Buffer> {
-    const docModel: DocumentModel = this.adapter.adapt(data);
-    const validation = DocumentValidator.validateModel(docModel);
-
-    if (!validation.isValid) {
-      console.warn('[DocxDocumentEngine] Validation warnings on DocumentModel:', validation.issues);
-    }
-
+    const docModel = this.createValidatedModel(data);
     const buffer = await this.nativeRenderer.renderToBuffer(docModel);
     const binaryValidation = await DocumentValidator.validateDocxBinary(buffer);
 
@@ -120,6 +108,29 @@ export class DocxDocumentEngine {
     }
 
     return buffer;
+  }
+
+  /**
+   * Builds and validates the canonical model before any DOCX bytes are emitted.
+   * Errors block generation; warnings are retained for diagnostics.
+   */
+  private createValidatedModel(data: DocumentModelData): DocumentModel {
+    const model = this.adapter.adapt(data);
+    const validation = DocumentValidator.validateModel(model);
+    const errors = validation.issues.filter((issue) => issue.type === 'error');
+    const warnings = validation.issues.filter((issue) => issue.type === 'warning');
+
+    if (errors.length > 0) {
+      throw new Error(
+        `[DocxDocumentEngine] Invalid document model: ${errors.map((issue) => issue.message).join('; ')}`
+      );
+    }
+
+    if (warnings.length > 0) {
+      console.warn('[DocxDocumentEngine] Document model warnings:', warnings);
+    }
+
+    return model;
   }
 
   /**
