@@ -154,8 +154,7 @@ export function buildDocumentHTML(
   };
 
   const tableRows = semanas.map((s, idx) => {
-    // Standardize all subjects, including diversificadas, to use the official 2-column template
-    const isDiversificada = false;
+    // All subjects use the official two-column template.
 
     const cleanConteudos = (s.conteudos || '')
       .replace(/atividade\s+verificadora(\s+de\s+aprendizagem)?/gi, '')
