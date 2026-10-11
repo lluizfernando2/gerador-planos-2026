@@ -1,5 +1,10 @@
 import { CurriculumItem } from '../../types';
 import { initialCurriculumData } from '../../data/curriculumData';
+import { fourthBimesterData } from '../../data/fourthBimesterData';
+import { ensinoMedioFgbData } from '../../data/ensinoMedioFgbData';
+import { ensinoMedioDiversificadaData } from '../../data/ensinoMedioDiversificadaData';
+import { ensinoMedioItinerariosData } from '../../data/ensinoMedioItinerariosData';
+import { ensinoMedioTecnicoData } from '../../data/ensinoMedioTecnicoData';
 import {
   PROJETO_DE_VIDA_DATA,
   TECNOLOGIA_INOVACAO_DATA,
@@ -10,7 +15,6 @@ import {
 } from '../../data/diversificadaData';
 import { itinerariosEMData } from '../../data/itinerariosEMData';
 import { MATRIZ_SOCIOEMOCIONAL } from '../../data/socioemocionalDatabase';
-import { OFFICIAL_RECOVERY_DATA_2026 } from '../../data/recoveryData2026';
 import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from '../../data/tecnicoData';
 
 export interface ICurriculumRepository {
@@ -19,7 +23,6 @@ export interface ICurriculumRepository {
   getItinerarioItems(): Promise<CurriculumItem[]>;
   getTecnicoItems(): Promise<CurriculumItem[]>;
   getAllItems(): Promise<CurriculumItem[]>;
-  getRecoveryData(): Promise<any>;
   getSocioemocionalMatriz(): Promise<any>;
 }
 
@@ -27,43 +30,38 @@ export class StaticCurriculumRepository implements ICurriculumRepository {
   private cachedAll: CurriculumItem[] | null = null;
 
   async getFgbItems(): Promise<CurriculumItem[]> {
-    return initialCurriculumData;
+    return [...fourthBimesterData, ...ensinoMedioFgbData];
   }
 
   async getDiversificadaData(): Promise<any> {
     return {
-      PROJETO_DE_VIDA_DATA,
-      TECNOLOGIA_INOVACAO_DATA,
-      ORIENTACAO_ESTUDO_MATEMATICA_DATA,
-      ORIENTACAO_ESTUDO_PORTUGUES_DATA,
-      EDUCACAO_FINANCEIRA_DATA,
-      REDACAO_LEITURA_DATA
+      'Projeto de Vida': PROJETO_DE_VIDA_DATA,
+      'Tecnologia e Inovação': TECNOLOGIA_INOVACAO_DATA,
+      'Orientação de Estudos - Matemática': ORIENTACAO_ESTUDO_MATEMATICA_DATA,
+      'Orientação de Estudos - Português': ORIENTACAO_ESTUDO_PORTUGUES_DATA,
+      'Educação Financeira': EDUCACAO_FINANCEIRA_DATA,
+      'Redação e Leitura': REDACAO_LEITURA_DATA,
     };
   }
 
   async getItinerarioItems(): Promise<CurriculumItem[]> {
-    return itinerariosEMData;
+    return ensinoMedioItinerariosData;
   }
 
   async getTecnicoItems(): Promise<CurriculumItem[]> {
-    return ALL_TECNICO_DATA.map(mapTecnicoToCurriculum);
+    return ensinoMedioTecnicoData;
   }
 
   async getAllItems(): Promise<CurriculumItem[]> {
     if (this.cachedAll) return this.cachedAll;
-
-    const [fgb, itin, tec] = await Promise.all([
-      this.getFgbItems(),
-      this.getItinerarioItems(),
-      this.getTecnicoItems(),
-    ]);
-
-    this.cachedAll = [...fgb, ...itin, ...tec];
+    this.cachedAll = [
+      ...fourthBimesterData,
+      ...ensinoMedioFgbData,
+      ...ensinoMedioDiversificadaData,
+      ...ensinoMedioItinerariosData,
+      ...ensinoMedioTecnicoData
+    ];
     return this.cachedAll;
-  }
-
-  async getRecoveryData(): Promise<any> {
-    return OFFICIAL_RECOVERY_DATA_2026;
   }
 
   async getSocioemocionalMatriz(): Promise<any> {
@@ -72,3 +70,4 @@ export class StaticCurriculumRepository implements ICurriculumRepository {
 }
 
 export const curriculumRepository = new StaticCurriculumRepository();
+

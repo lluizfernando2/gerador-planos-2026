@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { initialCurriculumData } from './data/curriculumData';
+import { fourthBimesterData } from './data/fourthBimesterData';
+import { curriculumRepository } from './features/curriculum/curriculumRepository';
 import {
   PROJETO_DE_VIDA_DATA,
   TECNOLOGIA_INOVACAO_DATA,
@@ -9,6 +11,10 @@ import {
   REDACAO_LEITURA_DATA
 } from './data/diversificadaData';
 import { itinerariosEMData } from './data/itinerariosEMData';
+import { ensinoMedioFgbData } from './data/ensinoMedioFgbData';
+import { ensinoMedioDiversificadaData } from './data/ensinoMedioDiversificadaData';
+import { ensinoMedioItinerariosData } from './data/ensinoMedioItinerariosData';
+import { ensinoMedioTecnicoData } from './data/ensinoMedioTecnicoData';
 import { MATRIZ_SOCIOEMOCIONAL } from './data/socioemocionalDatabase';
 import { buildAvaEfapeDocumentHTML } from './data/subjectMappings';
 import { buildDocumentHTML } from './lib/documentGenerator';
@@ -22,7 +28,6 @@ import DashboardPage from './components/DashboardPage';
 import FavoritesPage from './components/FavoritesPage';
 import SettingsPage from './components/SettingsPage';
 import { initAuth, googleSignIn, logoutUser, getAccessToken } from './lib/firebase';
-import { exportToGoogleSheets } from './lib/sheets';
 import * as XLSX from 'xlsx';
 import { PRESET_RECOVERY_TEMPLATES, generateCustomRecoveryPlan, RecoveryPlanResult, buildRecoveryPlanHTML, generateRecoveryPlanMarkdown, matchOfficialRecoveryItem } from './data/recoveryTemplates';
 import { OFFICIAL_RECOVERY_DATA_2026 } from './data/recoveryData2026';
@@ -30,86 +35,191 @@ import { LOGO_SP_BASE64 } from './data/logoSp';
 import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from './data/tecnicoData';
 import { generatePixPayload } from './lib/pix';
 import { pixService } from './features/pix/pixService';
-import LandingComments from './components/LandingComments';
 import buildInfo from './buildInfo.json';
-import { buildSecuredPrompt } from './lib/securityPrompt';
+import { buildSecuredPrompt } from './lib/geminiPrompt';
 import { documentEngine } from './features/documents/documentEngine';
+import AssessmentCalendar4B from './components/AssessmentCalendar4B';
+import { InstitutionalHeader } from './design-system/InstitutionalHeader';
+import { HomePage } from './pages/HomePage';
+import { GuidelinesHelpPage } from './pages/GuidelinesHelpPage';
+import { DocumentFrame } from './design-system/DocumentFrame';
+import { StepNavigation } from './design-system/StepNavigation';
+import { 
+  EssentialLearningItem, 
+  CurriculumSkillItem, 
+  LessonSequenceItem, 
+  DocumentStatusNotice 
+} from './design-system/PedagogicalComponents';
+import { EXTERNAL_ASSESSMENTS_2026, getAssessmentsForGrade } from './features/calendar/academicCalendar';
+
+export const sanitizeTextForAE = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/sistematização\s+e\s+checagem\s+de\s+retenção\s+(dos|de)?\s*conteúdos\.?/gi, '')
+    .replace(/como\s+o\s+ensino\s+(está\s+sendo|é)\s+aplicado[^\.\n;]*/gi, '')
+    .replace(/o\s+ensino\s+(está\s+sendo|é)\s+aplicado\s+(através|por\s+meio|com)[^\.\n;]*/gi, '')
+    .replace(/aplicação\s+do\s+ensino\s+(através|por\s+meio|com)[^\.\n;]*/gi, '')
+    .replace(/acompanhamento\s+do\s+aprendizado\s+para\s+garantir[^\.\n;]*/gi, '')
+    .replace(/desenvolvimento\s+e\s+aplicação\s+prática\s+das\s+habilidades\s+essenciais[^\.\n;]*/gi, '')
+    .replace(/acompanhar\s+a\s+absorção\s+do\s+conteúdo[^\.\n;]*/gi, '')
+    .replace(/verificação\s+contínua/gi, '')
+    .replace(/\bverificação\b/gi, 'Análise')
+    .replace(/\bverificar\b/gi, 'Analisar')
+    .replace(/\bconsolidação\b/gi, 'Síntese')
+    .replace(/\bconsolidar\b/gi, 'Sintetizar')
+    .replace(/\bdiagnosticar\b/gi, 'Identificar')
+    .replace(/\bdiagnóstico\b/gi, 'Avaliação')
+    .replace(/\bdiagnóstica\b/gi, 'Formativa')
+    .replace(/\brevisão\s+e\s+preparatório\b/gi, 'Preparação e Síntese')
+    .replace(/\brevisão\s+dos\s+conteúdos\b/gi, 'Síntese dos objetos de estudo')
+    .replace(/\brevisão\s+geral\b/gi, 'Síntese curricular')
+    .replace(/\brevisão\b/gi, 'Síntese')
+    .replace(/\brevisar\b/gi, 'Sintetizar')
+    .replace(/\brevisional\b/gi, 'Temático')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+export const sanitizeTextForBloom = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/como\s+o\s+ensino\s+(está\s+sendo|é)\s+aplicado[^\.\n;]*/gi, '')
+    .replace(/o\s+ensino\s+(está\s+sendo|é)\s+aplicado\s+(através|por\s+meio|com)[^\.\n;]*/gi, '')
+    .replace(/aplicação\s+do\s+ensino\s+(através|por\s+meio|com)[^\.\n;]*/gi, '')
+    .replace(/acompanhamento\s+do\s+aprendizado\s+para\s+garantir[^\.\n;]*/gi, '')
+    .replace(/desenvolvimento\s+e\s+aplicação\s+prática\s+das\s+habilidades\s+essenciais[^\.\n;]*/gi, '')
+    .replace(/acompanhar\s+a\s+absorção\s+do\s+conteúdo[^\.\n;]*/gi, '')
+    .replace(/sistematização\s+e\s+checagem\s+de\s+retenção\s+(dos|de)?\s*conteúdos\.?/gi, '')
+    .replace(/verificação\s+contínua/gi, '')
+    .replace(/\bverificação\b/gi, 'Análise')
+    .replace(/\bverificar\b/gi, 'Analisar')
+    .replace(/\bconsolidação\b/gi, 'Síntese')
+    .replace(/\bconsolidar\b/gi, 'Sintetizar')
+    .replace(/\bdiagnosticar\b/gi, 'Identificar')
+    .replace(/\bdiagnóstico\b/gi, 'Avaliação')
+    .replace(/\bdiagnóstica\b/gi, 'Formativa')
+    .replace(/\brevisão\s+e\s+preparatório\b/gi, 'Preparação e Análise')
+    .replace(/\brevisão\s+dos\s+conteúdos\b/gi, 'Análise dos objetos de estudo')
+    .replace(/\brevisão\s+geral\b/gi, 'Análise integrada')
+    .replace(/\brevisão\b/gi, 'Análise')
+    .replace(/\brevisar\b/gi, 'Analisar')
+    .replace(/\brevisional\b/gi, 'Cognitivo')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
 function mapProyectoVidaToCurriculum(item: any): CurriculumItem {
+  if (item.disciplina && item.titulo) {
+    return {
+      ...item,
+      raw: item
+    };
+  }
+  const temaStr = typeof item.tema === 'string' ? item.tema.split('.')[0] : (item.titulo || 'Projeto de Vida');
   return {
-    id: item.id,
-    ano: item.ano,
-    bimestre: item.bimestre,
-    aula: `Aula ${item.aula}`,
-    titulo: `Tema: ${item.tema.split('.')[0] || 'Projeto de Vida'}`,
-    conteudo: `Dimensão: ${item.dimensao} | Atitude: ${item.atitude} | Prática: ${item.pratica} \n\nContexto: ${item.contexto} \nQuestões: ${item.questoes}`,
-    objetivos: `Compreensão: ${item.compreensao}`,
-    habilidade: item.habilidade,
-    aprendizagem: `Estratégias BNCC / Currículo Paulista 2026: Desenvolver a competência socioemocional de ${item.dimensao.toLowerCase()} através da atitude de ${item.atitude.toLowerCase()} e prática de ${item.pratica.toLowerCase()}.`,
+    id: item.id || `pv-${item.ano}-${item.bimestre}-${item.aula}`,
+    ano: item.ano || '6º Ano',
+    bimestre: item.bimestre || '1º Bimestre',
+    aula: typeof item.aula === 'string' && item.aula.startsWith('Aula') ? item.aula : `Aula ${item.aula || 1}`,
+    titulo: item.titulo || `Tema: ${temaStr}`,
+    conteudo: item.conteudo || `Dimensão: ${item.dimensao || ''} | Atitude: ${item.atitude || ''} | Prática: ${item.pratica || ''} \n\nContexto: ${item.contexto || ''} \nQuestões: ${item.questoes || ''}`,
+    objetivos: item.objetivos || item.compreensao || '',
+    habilidade: item.habilidade || '',
+    aprendizagem: item.aprendizagem || (item.habilidade ? `${item.habilidade} - ${item.compreensao || ''}` : item.compreensao || ''),
     disciplina: 'Projeto de Vida',
     raw: item
   };
 }
 
 function mapTecnologiaToCurriculum(item: any): CurriculumItem {
+  if (item.disciplina && item.titulo) {
+    return {
+      ...item,
+      raw: item
+    };
+  }
+  const aulaLabel = item.aulaSala ? `Aula ${item.aulaSala} (${item.semana || ''})` : (typeof item.aula === 'string' && item.aula.startsWith('Aula') ? item.aula : `Aula ${item.aula || 1}`);
+  const hab = item.habilidade || (item.habComputacaoCodigo && item.habComputacaoCodigo !== 'n/a' ? `${item.habComputacaoCodigo}: ${item.habComputacaoTexto || ''}` : `${item.habBnccCodigo || ''}: ${item.habBnccTexto || ''}`);
   return {
-    id: item.id,
-    ano: item.ano,
-    bimestre: item.bimestre,
-    aula: `Aula ${item.aulaSala} (${item.semana})`,
-    titulo: item.titulo,
-    conteudo: `Unidade: ${item.unidade} | Formato: ${item.formato} \nConteúdos: ${item.conteudos} \nEntrega: ${item.entrega}`,
-    objetivos: item.objetivo,
-    habilidade: item.habComputacaoCodigo !== 'n/a' ? `${item.habComputacaoCodigo}: ${item.habComputacaoTexto}` : `${item.habBnccCodigo}: ${item.habBnccTexto}`,
-    aprendizagem: `Pensamento Computacional & Cultura Digital: ${item.habComputacaoTexto}`,
+    id: item.id || `tec-${item.ano}-${item.bimestre}-${item.aula || 1}`,
+    ano: item.ano || '6º Ano',
+    bimestre: item.bimestre || '1º Bimestre',
+    aula: aulaLabel,
+    titulo: item.titulo || 'Tecnologia e Inovação',
+    conteudo: item.conteudo || `Unidade: ${item.unidade || ''} | Formato: ${item.formato || ''} \nConteúdos: ${item.conteudos || ''} \nEntrega: ${item.entrega || ''}`,
+    objetivos: item.objetivos || item.objetivo || '',
+    habilidade: hab,
+    aprendizagem: item.aprendizagem || item.habComputacaoTexto || item.habBnccTexto || '',
     disciplina: 'Tecnologia e Inovação',
     raw: item
   };
 }
 
 function mapOrientacaoEstudoToCurriculum(item: any): CurriculumItem {
+  if (item.disciplina && item.titulo) {
+    return {
+      ...item,
+      raw: item
+    };
+  }
+  const titleGps = typeof item.tituloGps === 'string' ? (item.tituloGps.split('|')[1]?.trim() || item.tituloGps) : (item.titulo || 'Orientação de Estudos');
+  const aulaLabel = item.semana ? `Aula ${item.aula || 1} (${item.semana})` : (typeof item.aula === 'string' && item.aula.startsWith('Aula') ? item.aula : `Aula ${item.aula || 1}`);
+  const habCode = item.habilidadeCodigo ? `${item.habilidadeCodigo}: ${item.habilidadeTexto || ''}` : (item.habilidade || '');
   return {
-    id: item.id,
-    ano: item.ano,
-    bimestre: item.bimestre,
-    aula: `Aula ${item.aula} (${item.semana})`,
-    titulo: item.tituloGps.split('|')[1]?.trim() || item.tituloGps,
-    conteudo: `Gênero: ${item.genero} | Eixo: ${item.eixo} \nPráticas Pedagógicas: ${item.praticasPedagogicas} \nPlataforma: ${item.plataforma}`,
-    objetivos: item.objetivos,
-    habilidade: `${item.habilidadeCodigo}: ${item.habilidadeTexto}`,
-    aprendizagem: `Prática de Linguagem: ${item.praticaLinguagem} | Sugestões: ${item.sugestoes.join(', ')}`,
+    id: item.id || `oe-${item.ano}-${item.bimestre}-${item.aula || 1}`,
+    ano: item.ano || '6º Ano',
+    bimestre: item.bimestre || '1º Bimestre',
+    aula: aulaLabel,
+    titulo: titleGps,
+    conteudo: item.conteudo || `Gênero: ${item.genero || ''} | Eixo: ${item.eixo || ''} \nPráticas Pedagógicas: ${item.praticasPedagogicas || ''} \nPlataforma: ${item.plataforma || ''}`,
+    objetivos: item.objetivos || '',
+    habilidade: habCode,
+    aprendizagem: item.aprendizagem || item.habilidadeTexto || item.praticaLinguagem || '',
     disciplina: item.disciplina || 'Orientação de Estudos - Matemática',
     raw: item
   };
 }
 
 function mapEducacaoFinanceiraToCurriculum(item: any): CurriculumItem {
+  if (item.disciplina && item.titulo) {
+    return {
+      ...item,
+      raw: item
+    };
+  }
+  const habCode = item.habilidadeCodigo ? `${item.habilidadeCodigo}: ${item.habilidadeTexto || ''}` : (item.habilidade || '');
   return {
-    id: item.id,
-    ano: item.ano,
-    bimestre: item.bimestre,
-    aula: `Aula ${item.aula}`,
-    titulo: item.titulo,
-    conteudo: `Unidade Temática: ${item.unidadeTematica} \nObjeto de Conhecimento: ${item.objetoConhecimento} \nConteúdos: ${item.conteudo}`,
-    objetivos: item.objetivos,
-    habilidade: `${item.habilidadeCodigo}: ${item.habilidadeTexto}`,
-    aprendizagem: `Economia Aplicada e Consumo Consciente: ${item.objetoConhecimento}`,
+    id: item.id || `ef-${item.ano}-${item.bimestre}-${item.aula || 1}`,
+    ano: item.ano || '6º Ano',
+    bimestre: item.bimestre || '1º Bimestre',
+    aula: typeof item.aula === 'string' && item.aula.startsWith('Aula') ? item.aula : `Aula ${item.aula || 1}`,
+    titulo: item.titulo || 'Educação Financeira',
+    conteudo: item.conteudo || `Unidade Temática: ${item.unidadeTematica || ''} \nObjeto de Conhecimento: ${item.objetoConhecimento || ''} \nConteúdos: ${item.conteudo || ''}`,
+    objetivos: item.objetivos || '',
+    habilidade: habCode,
+    aprendizagem: item.aprendizagem || item.habilidadeTexto || item.objetoConhecimento || '',
     disciplina: 'Educação Financeira',
     raw: item
   };
 }
 
 function mapRedacaoLeituraToCurriculum(item: any): CurriculumItem {
+  if (item.disciplina && item.titulo) {
+    return {
+      ...item,
+      raw: item
+    };
+  }
   return {
-    id: item.id,
-    ano: item.ano,
-    bimestre: item.bimestre,
-    aula: item.aula,
-    titulo: item.titulo,
-    conteudo: `Gênero/Tema: ${item.titulo} \nConteúdos: ${item.conteudo}`,
-    objetivos: item.objetivos,
-    habilidade: item.habilidade,
-    aprendizagem: item.aprendizagem,
+    id: item.id || `rl-${item.ano}-${item.bimestre}-${item.aula || 1}`,
+    ano: item.ano || '6º Ano',
+    bimestre: item.bimestre || '1º Bimestre',
+    aula: typeof item.aula === 'string' && item.aula.startsWith('Aula') ? item.aula : `Aula ${item.aula || 1}`,
+    titulo: item.titulo || 'Redação e Leitura',
+    conteudo: item.conteudo || `Gênero/Tema: ${item.titulo || ''} \nConteúdos: ${item.conteudo || ''}`,
+    objetivos: item.objetivos || '',
+    habilidade: item.habilidade || '',
+    aprendizagem: item.aprendizagem || '',
     disciplina: 'Redação e leitura',
     raw: item
   };
@@ -199,17 +309,19 @@ function getWeeksForBimestre(bimestre: string) {
       { num: 10, period: "28/09 a 02/10/2026", holiday: "Consolidação e Devolutiva" }
     ];
   }
+  // 4º Bimestre (Detalhamento oficial 2026 - 11 semanas)
   return [
-    { num: 1, period: "05 a 09/10/2026", holiday: "" },
-    { num: 2, period: "12 a 16/10/2026", holiday: "Feriado: 12/10 - N. Sra. Aparecida" },
-    { num: 3, period: "19 a 23/10/2026", holiday: "" },
-    { num: 4, period: "26 a 30/10/2026", holiday: "" },
-    { num: 5, period: "02 a 06/11/2026", holiday: "Feriado: 02/11 - Finados" },
-    { num: 6, period: "09 a 13/11/2026", holiday: "" },
-    { num: 7, period: "16 a 20/11/2026", holiday: "Feriado: 20/11 - Consciência Negra" },
-    { num: 8, period: "23 a 27/11/2026", holiday: "Previsão SARESP (25/11 e 26/11)" },
-    { num: 9, period: "30/11 a 04/12/2026", holiday: "Recuperação" },
-    { num: 10, period: "07 a 18/12/2026", holiday: "Consolidação / Atividades de Fechamento" }
+    { num: 1, period: "05/10 a 09/10/2026", holiday: "" },
+    { num: 2, period: "12/10 a 16/10/2026", holiday: "12/10 = Feriado Nacional | 13/10 = Catavento e Museu da Língua Portuguesa | 15/10 = Feriado Escolar" },
+    { num: 3, period: "19/10 a 23/10/2026", holiday: "" },
+    { num: 4, period: "26/10 a 30/10/2026", holiday: "29 e 30/10 = SARESP (9º ano)" },
+    { num: 5, period: "02/11 a 06/11/2026", holiday: "02/11 = Feriado Nacional | 04 e 05/11 = Provão Paulista Seriado (3ª série EM)" },
+    { num: 6, period: "09/11 a 13/11/2026", holiday: "10 e 11/11 = Provão Paulista Seriado (2ª série EM) | 12 e 13/11 = Provão Paulista Seriado (1ª série EM)" },
+    { num: 7, period: "16/11 a 20/11/2026", holiday: "19/11 = SARESP Digital (6º ano) | 20/11 = Feriado Nacional" },
+    { num: 8, period: "23/11 a 27/11/2026", holiday: "26 e 27/11 = SARESP Digital (7º ano) | 28/11 = Feriado Escolar" },
+    { num: 9, period: "30/11 a 04/12/2026", holiday: "30/11 e 01/12 = SARESP Digital (8º ano) | 02 e 03/12 = Reposição SARESP (6º, 7º e 8º anos)" },
+    { num: 10, period: "07/12 a 11/12/2026", holiday: "07, 08 e 09/12 = Recuperação Semestral SEDUC | 08/12 = Feriado Municipal" },
+    { num: 11, period: "14/12 a 18/12/2026", holiday: "14 a 18/12 = Conselho Final e Fechamento | 18/12 = Encerramento do Ano Letivo" }
   ];
 }
 
@@ -669,9 +781,27 @@ function _legacyBuildDocumentHTML(
                   OMASP: 18 a 22/05/2026<br />
                   PROVA PAULISTA 2º BIMESTRE: 15 a 19/06/2026
                 ` : bimestre === '4º Bimestre' ? `
-                  FERIADOS E PONTO FACULTATIVO: 12/10/2026; 02/11/2026; 20/11/2026; 08/12/2026<br />
-                  PREVISÃO SARESP: 25/11/2026 e 26/11/2026<br />
-                  PROVA PAULISTA 4º BIMESTRE: 23 a 27/11/2026
+                  11 semanas<br />
+                  <strong>Datas:</strong><br />
+                  12/10 = Feriado Nacional<br />
+                  13/10 = Catavento e Museu da Língua Portuguesa – Anos Finais<br />
+                  15/10 = Feriado Escolar<br />
+                  20/10 = Simulado Provão Paulista e ENEM (Para o Ensino Médio)<br />
+                  23/10 = Jardim do Conhecimento/Feira<br />
+                  29 e 30/10/2026 = SARESP 9º ano (Impresso)<br />
+                  02/11 = Feriado Nacional<br />
+                  04 e 05/11/2026 = Provão Paulista Seriado 3ª série<br />
+                  10 e 11/11/2026 = Provão Paulista Seriado 2ª série<br />
+                  12 e 13/11/2026 = Provão Paulista Seriado 1ª série<br />
+                  19/11/2026 = SARESP Digital 6º ano<br />
+                  20/11 = Feriado Nacional<br />
+                  26 e 27/11/2026 = SARESP Digital 7º ano<br />
+                  28/11 = Feriado Escolar<br />
+                  30/11 e 01/12/2026 = SARESP Digital 8º ano<br />
+                  02 e 03/12/2026 = Reposição SARESP (6º, 7º e 8º anos)<br />
+                  07, 08 e 09/12/2026 = Recuperação Semestral SEDUC<br />
+                  08/12 = Feriado Municipal<br />
+                  14 a 18/12/2026 = Conselho Final e Fechamento / Encerramento do Ano Letivo
                 ` : `
                   FERIADOS E PONTO FACULTATIVO: 07/09/2026<br />
                   RECUPERAÇÃO E APROFUNDAMENTO: 27 a 30/07/2026<br />
@@ -815,18 +945,7 @@ const allMappedDiversificada = [
 
 const allMappedTecnico = ALL_TECNICO_DATA.map(mapTecnicoToCurriculum);
 
-const initialCombinedCurriculumData = [
-  ...initialCurriculumData,
-  ...allMappedDiversificada,
-  ...cleanItinerariosEMData,
-  ...allMappedTecnico
-].filter((item: any) => {
-  if (!item) return false;
-  const t = (item.titulo || item.tema || '').trim();
-  const c = (item.conteudo || item.contexto || '').trim();
-  const o = (item.objetivos || item.compreensao || '').trim();
-  return t !== '' || c !== '' || o !== '';
-});
+const initialCombinedCurriculumData = fourthBimesterData;
 
 const FUNDAMENTAL_FGB_SUBJECTS = [
   { id: 'Língua Portuguesa', label: 'Língua Portuguesa', ready: true },
@@ -851,14 +970,14 @@ const FUNDAMENTAL_DIVERSIFICADA_SUBJECTS = [
 const MEDIO_FGB_SUBJECTS = [
   { id: 'Língua Portuguesa', label: 'Língua Portuguesa', ready: true },
   { id: 'Matemática', label: 'Matemática', ready: true },
-  { id: 'Biologia', label: 'Biologia', ready: true },
   { id: 'Física', label: 'Física', ready: true },
   { id: 'Química', label: 'Química', ready: true },
+  { id: 'Biologia', label: 'Biologia', ready: true },
   { id: 'História', label: 'História', ready: true },
-  { id: 'Geografia', label: 'Geografia (1ª/2ª Série)', ready: true },
+  { id: 'Geografia', label: 'Geografia', ready: true },
   { id: 'Filosofia', label: 'Filosofia', ready: true },
   { id: 'Sociologia', label: 'Sociologia', ready: true },
-  { id: 'Língua Inglesa', label: 'Língua Inglesa (1ª/2ª Série)', ready: true },
+  { id: 'Língua Inglesa', label: 'Língua Inglesa', ready: true },
   { id: 'Arte', label: 'Arte', ready: true },
   { id: 'Educação Física', label: 'Educação Física', ready: true }
 ];
@@ -900,11 +1019,12 @@ export default function App() {
   const [needsAuth, setNeedsAuth] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Tracks whether the user has entered the platform past the landing page (always starts false on page refresh)
-  const [hasEntered, setHasEntered] = useState<boolean>(false);
-
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'settings' | 'help'>('dashboard');
+  // Active Tab & Workflow
+  const [activeTab, setActiveTab] = useState<string>('plan-generator');
+  const [editorStep, setEditorStep] = useState<number>(1);
+  const [lastSavedText, setLastSavedText] = useState<string>('Salvo localmente');
+  const [isAutosaving, setIsAutosaving] = useState<boolean>(false);
+  const [showCalendarDetails, setShowCalendarDetails] = useState<boolean>(false);
 
   // Recovery Plan Generator States
   const [recComponente, setRecComponente] = useState('Tecnologia e Inovação');
@@ -929,14 +1049,47 @@ export default function App() {
   const [docenteName, setDocenteName] = useState('');
   const [selectedSegment, setSelectedSegment] = useState<'ENSINO FUNDAMENTAL ANOS FINAIS' | 'ENSINO MÉDIO'>('ENSINO FUNDAMENTAL ANOS FINAIS');
   const [subjectCategory, setSubjectCategory] = useState<'FGB' | 'DIVERSIFICADA' | 'ITINERARIOS' | 'TECNICO'>('FGB');
+
+  const getOfficialCurriculumData = (): CurriculumItem[] => {
+    if (selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS') {
+      if (subjectCategory === 'FGB') {
+        return fourthBimesterData;
+      }
+
+      if (subjectCategory === 'DIVERSIFICADA') {
+        return allMappedDiversificada;
+      }
+
+      return [];
+    }
+
+    switch (subjectCategory) {
+      case 'FGB':
+        return ensinoMedioFgbData;
+
+      case 'DIVERSIFICADA':
+        return ensinoMedioDiversificadaData;
+
+      case 'TECNICO':
+        return ensinoMedioTecnicoData;
+
+      case 'ITINERARIOS':
+        return ensinoMedioItinerariosData;
+
+      default:
+        return [];
+    }
+  };
+
   const [dataSource, setDataSource] = useState<'oficial' | 'upload'>('oficial');
+  const [allAvailableLessons, setAllAvailableLessons] = useState<CurriculumItem[]>([]);
   const [uploadedDb, setUploadedDb] = useState<Record<string, any[][]>>({});
   const [uploadedFileName, setUploadedFileName] = useState('');
   
   // Selection filters for Plan Generator
   const [planSubject, setPlanSubject] = useState('Matemática');
   const [planGrade, setPlanGrade] = useState('6º Ano');
-  const [planBimester, setPlanBimester] = useState('3º Bimestre');
+  const [planBimester, setPlanBimester] = useState('4º Bimestre');
   
   // Selected lesson keys for Plan Generator
   const [selectedPlanLessons, setSelectedPlanLessons] = useState<Set<string>>(new Set());
@@ -1040,6 +1193,45 @@ export default function App() {
       }
     }));
   };
+
+  // Active Plan Skills Mapping
+  const activePlanSkillsMapping = useCallback(() => {
+    const activeLessons: any[] = [];
+    const skillCounts: Record<string, number> = {};
+    const activeSkillCodes = new Set<string>();
+
+    items.forEach(item => {
+      const key = `oficial|${item.id}`;
+      if (selectedPlanLessons.has(key)) {
+        activeLessons.push(item);
+        const hab = item.habilidade || item.aprendizagem || '';
+        if (hab) {
+          const matches = hab.match(/[A-Z]{2,4}\d{2}[A-Z0-9]{2,4}/gi) || [];
+          if (matches.length > 0) {
+            matches.forEach(code => {
+              const uppercaseCode = code.toUpperCase();
+              activeSkillCodes.add(uppercaseCode);
+              skillCounts[uppercaseCode] = (skillCounts[uppercaseCode] || 0) + 1;
+            });
+          } else {
+            const trimmed = hab.slice(0, 60);
+            activeSkillCodes.add(trimmed);
+            skillCounts[trimmed] = (skillCounts[trimmed] || 0) + 1;
+          }
+        }
+      }
+    });
+
+    return {
+      subject: planSubject,
+      grade: planGrade,
+      bimester: planBimester,
+      totalSelectedLessons: activeLessons.length,
+      activeSkillCodes: Array.from(activeSkillCodes),
+      skillCounts,
+      activeLessons
+    };
+  }, [selectedPlanLessons, items, planSubject, planGrade, planBimester])();
 
   // Page Redesign options states
   const [appTypography, setAppTypography] = useState<'sans' | 'space' | 'mono' | 'serif'>(() => {
@@ -1233,10 +1425,6 @@ export default function App() {
       setToken(null);
       setNeedsAuth(true);
       setCreatedSheetUrl(null);
-      setHasEntered(false);
-      try {
-        localStorage.removeItem('curr_priorizado_entered');
-      } catch (e) {}
     } catch (err) {
       console.error('Logout failed:', err);
     }
@@ -1256,15 +1444,47 @@ export default function App() {
     }
   };
 
-  // Synchronize filters on dataSource change
+  // Sincroniza os filtros ao trocar a fonte ou o segmento de ensino
   useEffect(() => {
-    if (dataSource === 'oficial') {
-      setPlanSubject('Língua Portuguesa');
-      setSubjectCategory('FGB');
-      setPlanGrade(selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS' ? '6º Ano' : '1ª Série');
-      setPlanBimester('3º Bimestre');
+    if (dataSource !== 'oficial') return;
+
+    setSubjectCategory('FGB');
+    setPlanSubject('Língua Portuguesa');
+
+    setPlanGrade(
+      selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS'
+        ? '6º Ano'
+        : '1ª Série'
+    );
+
+    // O filtro oficial disponibiliza o 4º bimestre
+    setPlanBimester('4º Bimestre');
+  }, [dataSource, selectedSegment]);
+
+  // Load lessons when category or dataSource changes
+  useEffect(() => {
+    async function loadData() {
+      if (dataSource !== 'oficial') return;
+      
+      let data: CurriculumItem[] = [];
+      if (subjectCategory === 'FGB') {
+        data = await curriculumRepository.getFgbItems();
+      } else if (subjectCategory === 'ITINERARIOS') {
+        data = await curriculumRepository.getItinerarioItems();
+      } else if (subjectCategory === 'TECNICO') {
+        data = await curriculumRepository.getTecnicoItems();
+      } else if (subjectCategory === 'DIVERSIFICADA') {
+        const divData = await curriculumRepository.getDiversificadaData();
+        let allDiv: CurriculumItem[] = [];
+        Object.keys(divData).forEach(key => {
+          allDiv = allDiv.concat(divData[key]);
+        });
+        data = allDiv;
+      }
+      setAllAvailableLessons(data);
     }
-  }, [dataSource]);
+    loadData();
+  }, [subjectCategory, dataSource]);
 
   // Update grade filter list and selected grade if planSubject changes under upload
   useEffect(() => {
@@ -1289,10 +1509,10 @@ export default function App() {
       const uniqueBims = Array.from(new Set(filteredRows.map(r => String(r[1] || '').trim()))).filter(Boolean);
       if (uniqueBims.length > 0) {
         if (!uniqueBims.includes(planBimester)) {
-          setPlanBimester(uniqueBims[0]);
+          setPlanBimester('4º Bimestre');
         }
       } else {
-        setPlanBimester('');
+        setPlanBimester('4º Bimestre');
       }
     }
   }, [planGrade, planSubject, dataSource, uploadedDb]);
@@ -1319,30 +1539,48 @@ export default function App() {
     });
   }, [planSubject, planGrade, planBimester, dataSource, items]);
 
-  const getAvailableLessons = () => {
-    if (dataSource === 'oficial') {
-      if (!planSubject || !planGrade || !planBimester) return [];
-      return items.filter((item) => {
-        const itemDisc = item.disciplina || 'Matemática';
-        return itemDisc === planSubject && item.ano === planGrade && item.bimestre === planBimester;
-      });
-    } else {
-      if (!planSubject || !planGrade || !planBimester || !uploadedDb[planSubject]) return [];
-      const sheetData = uploadedDb[planSubject];
-      return sheetData.slice(1).map((row, index) => {
-        return {
-          id: `upload-${planSubject}-${index + 1}`,
-          rowIdx: index + 1,
-          ano: String(row[0] || '').trim(),
-          bimestre: String(row[1] || '').trim(),
-          aula: String(row[2] || '').trim(),
-          titulo: String(row[3] || '').trim(),
-          conteudo: String(row[4] || '').trim(),
-          habilidade: String(row[5] || row[4] || '').trim(),
-          objetivos: String(row[6] || row[5] || '').trim(),
-        };
-      }).filter(item => item.ano === planGrade && item.bimestre === planBimester);
+  const normalizeFilter = (s: any) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+
+  const normalizeBimester = (b: string) => {
+    const s = normalizeFilter(b).replace('bimestre', '');
+    return s.replace('quarto', '4').replace('terceiro', '3').replace('segundo', '2').replace('primeiro', '1').replace('º', '');
+  };
+
+  const getImportedCurriculumData = (): CurriculumItem[] => {
+    if (!planSubject || !uploadedDb[planSubject]) return [];
+    const sheetData = uploadedDb[planSubject];
+    return sheetData.slice(1).map((row, index) => ({
+      id: `upload-${planSubject}-${index + 1}`,
+      rowIdx: index + 1,
+      ano: String(row[0] || '').trim(),
+      bimestre: String(row[1] || '').trim(),
+      aula: String(row[2] || '').trim(),
+      titulo: String(row[3] || '').trim(),
+      conteudo: String(row[4] || '').trim(),
+      habilidade: String(row[5] || row[4] || '').trim(),
+      objetivos: String(row[6] || row[5] || '').trim(),
+      disciplina: planSubject
+    }));
+  };
+
+  const getAvailableLessons = (): CurriculumItem[] => {
+    if (!planSubject || !planGrade || !planBimester) {
+      return [];
     }
+
+    const source =
+      dataSource === 'oficial'
+        ? getOfficialCurriculumData()
+        : getImportedCurriculumData();
+
+    return source.filter((item) =>
+      normalizeFilter(item.disciplina) ===
+        normalizeFilter(planSubject) &&
+      normalizeFilter(item.ano) ===
+        normalizeFilter(planGrade) &&
+      normalizeBimester(item.bimestre) ===
+        normalizeBimester(planBimester)
+    );
   };
 
   const togglePlanLesson = (key: string) => {
@@ -1441,13 +1679,14 @@ export default function App() {
             const filteredRows = sheetRows.slice(1).filter(r => String(r[0] || '').trim() === uniqueGrades[0]);
             const uniqueBims = Array.from(new Set(filteredRows.map(r => String(r[1] || '').trim()))).filter(Boolean);
             if (uniqueBims.length > 0) {
-              setPlanBimester(uniqueBims[0]);
+              const b4 = uniqueBims.find(b => b.includes('4') || b.toLowerCase().includes('quarto'));
+              setPlanBimester('4º Bimestre');
             } else {
-              setPlanBimester('');
+              setPlanBimester('4º Bimestre');
             }
           } else {
             setPlanGrade('');
-            setPlanBimester('');
+            setPlanBimester('4º Bimestre');
           }
         }
         showToast("Planilha de Escopo carregada com sucesso!");
@@ -1472,12 +1711,43 @@ export default function App() {
           const activeKeys = orderedSelectedLessons.filter(k => k.startsWith('oficial|'));
           const selectedLessons: any[] = [];
           
+          const normalizeFilter = (s: any) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+          
+          const normalizeBimester = (b: string) => {
+            const s = normalizeFilter(b).replace('bimestre', '');
+            return s.replace('quarto', '4').replace('terceiro', '3').replace('segundo', '2').replace('primeiro', '1').replace('º', '');
+          };
+
           activeKeys.forEach(k => {
             const id = k.split('|')[1];
-            const item = items.find(i => String(i.id) === id);
+            
+            const allOfficialItems = [
+              ...fourthBimesterData,
+              ...initialCurriculumData,
+              ...itinerariosEMData,
+              ...ensinoMedioFgbData,
+              ...ensinoMedioDiversificadaData,
+              ...ensinoMedioItinerariosData,
+              ...ensinoMedioTecnicoData,
+              ...ALL_TECNICO_DATA.map(mapTecnicoToCurriculum),
+              ...PROJETO_DE_VIDA_DATA.map(mapProyectoVidaToCurriculum),
+              ...TECNOLOGIA_INOVACAO_DATA.map(mapTecnologiaToCurriculum),
+              ...ORIENTACAO_ESTUDO_MATEMATICA_DATA.map(mapOrientacaoEstudoToCurriculum),
+              ...ORIENTACAO_ESTUDO_PORTUGUES_DATA.map(mapOrientacaoEstudoToCurriculum),
+              ...EDUCACAO_FINANCEIRA_DATA.map(mapEducacaoFinanceiraToCurriculum),
+              ...REDACAO_LEITURA_DATA.map(mapRedacaoLeituraToCurriculum)
+            ];
+
+            const item = allOfficialItems.find(
+              i => String(i.id) === id
+            );
+            
             if (item) {
-              const itemDisc = item.disciplina || 'Matemática';
-              const matchesFilter = itemDisc === planSubject && item.ano === planGrade && item.bimestre === planBimester;
+              const matchesFilter =
+                normalizeFilter(item.disciplina) === normalizeFilter(planSubject) &&
+                normalizeFilter(item.ano) === normalizeFilter(planGrade) &&
+                normalizeBimester(item.bimestre) === normalizeBimester(planBimester);
+
               if (matchesFilter) {
                 selectedLessons.push(item);
               }
@@ -1568,14 +1838,19 @@ export default function App() {
           accumulatedNormal.push(currentLesson);
           enrichedLessons.push(currentLesson);
           if ((idx + 1) % interval === 0) {
+            const prevSkills = Array.from(new Set(accumulatedNormal.map((l: any) => l.habilidade || l.aprendizagem).filter(Boolean)));
+            const prevTopics = Array.from(new Set(accumulatedNormal.map((l: any) => l.titulo || l.conteudo).filter(Boolean)));
+            const primarySkill = prevSkills[prevSkills.length - 1] || `${planSubject}: Aplicação das habilidades curriculares`;
+            const topicsSummary = prevTopics.slice(-2).join(' e ') || planSubject;
+
             enrichedLessons.push({
               num: 999,
               aula: `Atividade Verificadora ${activityCount}`,
-              titulo: `Atividade Verificadora de Aprendizagem ${activityCount}`,
-              conteudo: "Verificação e checagem de retenção para garantir que os alunos estão realmente aprendendo os conceitos anteriores através de exercícios de feedback rápido e autoavaliação.",
-              habilidade: "Verificação contínua e consolidação de aprendizagens essenciais.",
-              aprendizagem: "Sistematização e checagem de retenção dos conteúdos.",
-              objetivos: "Diagnosticar e verificar a real absorção do conteúdo e o desenvolvimento das habilidades trabalhadas até o momento.",
+              titulo: `Atividade Verificadora de Aprendizagem ${activityCount}: ${topicsSummary}`,
+              conteudo: `Aplicação prática e resolução de problemas sobre: ${topicsSummary}.`,
+              habilidade: primarySkill,
+              aprendizagem: primarySkill,
+              objetivos: `Analisar, resolver questões e demonstrar domínio conceitual e procedimental sobre ${topicsSummary}.`,
               raw: null,
               previousLessons: [...accumulatedNormal]
             });
@@ -1616,14 +1891,15 @@ export default function App() {
             });
 
             if (weekConf.projectDates || weekConf.projectDescription) {
+              const projectTitle = weekConf.projectDescription || `Investigação Prática e Modelagem em ${planSubject}`;
               weekLessons.push({
                 num: 998,
                 aula: `Atividade Diferenciada / Projeto (${weekConf.projectDates || 'Semana ' + (i + 1)})`,
-                titulo: weekConf.projectDescription || 'Execução de Projeto Prático / Atividade Diferenciada',
-                conteudo: weekConf.projectDescription || 'Atividade Diferenciada e execução de projeto transversal.',
-                habilidade: 'Desenvolvimento de competências socioemocionais, investigação e aplicação prática.',
-                aprendizagem: 'Execução de projetos e atividades diferenciadas.',
-                objetivos: 'Incentivar o protagonismo juvenil, a pesquisa e a resolução de problemas através de projetos dinâmicos.',
+                titulo: projectTitle,
+                conteudo: projectTitle,
+                habilidade: `${planSubject}: Investigação científica e aplicação prática dos conceitos curriculares`,
+                aprendizagem: `${planSubject}: Investigação científica e aplicação prática dos conceitos curriculares`,
+                objetivos: `Investigar, modelar e resolver situações-problema pertinentes a ${projectTitle}.`,
                 raw: null
               });
             }
@@ -1631,12 +1907,12 @@ export default function App() {
             if (weekLessons.length === 0) {
               weekLessons.push({
                 num: 0,
-                aula: `Ajuste Pedagógico / Semana ${i + 1}`,
-                titulo: `Retomada e consolidação de aprendizagens`,
-                conteudo: `Sistematização de conteúdos e acompanhamento individualizado.`,
-                habilidade: `Consolidação de habilidades do bimestre.`,
-                aprendizagem: `Acompanhamento pedagógico.`,
-                objetivos: `Garantir o nivelamento e apoio aos estudantes.`,
+                aula: `Atividade Curricular / Semana ${i + 1}`,
+                titulo: `Aprofundamento temático de ${planSubject}`,
+                conteudo: `Estudo direcionado dos objetos de conhecimento de ${planSubject} (${planGrade} - ${planBimester}).`,
+                habilidade: `${planSubject}: Habilidades curriculares prioritárias do período letivo`,
+                aprendizagem: `${planSubject}: Habilidades curriculares prioritárias do período letivo`,
+                objetivos: `Analisar e aplicar os conceitos fundamentais de ${planSubject}.`,
                 raw: null
               });
             }
@@ -1908,20 +2184,44 @@ export default function App() {
             const ch = firstRaw.chTeoricaPratica === 'P' ? 'Prática' : 'Teórica';
             const temaSemana = firstRaw.temaSemana || '';
 
-            // Clean list of unique lesson items with their corresponding topic/knowledges
-            const uniqueLessonItems = weekLessons.map(l => {
+            // Clean list of unique lesson items with their corresponding topic/knowledges without repeating codes, texts or lesson numbers
+            const uniqueLessonItems: string[] = [];
+            weekLessons.forEach(l => {
               const raw = l.raw || {};
-              const num = raw.aulaNumero || l.aula || '';
-              // Strip "Atividade Verificadora"
-              const tit = (raw.tituloAula || l.titulo || '')
+              let num = String(raw.aulaNumero || l.aula || '').trim();
+              let tit = (raw.tituloAula || l.titulo || '')
                 .replace(/atividade\s+verificadora(\s+de\s+aprendizagem)?/gi, '')
                 .replace(/Atividade\s+Verificadora(\s+de\s+Aprendizagem)?/gi, '')
                 .trim();
-              const objConhecimento = (raw.objetoConhecimento || '')
+              let objConhecimento = (raw.objetoConhecimento || '')
                 .replace(/atividade\s+verificadora(\s+de\s+aprendizagem)?/gi, '')
                 .replace(/Atividade\s+Verificadora(\s+de\s+Aprendizagem)?/gi, '')
                 .trim();
-              return `<strong>${num}</strong>: ${tit}${objConhecimento ? ` <span style="color: #4b5563;">(${objConhecimento})</span>` : ''}`;
+
+              // Remove skill codes (e.g. EF07..., EM13...) from content
+              tit = tit.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+              objConhecimento = objConhecimento.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+
+              // If title already starts with the lesson number, avoid duplicating
+              if (tit.toLowerCase().startsWith(num.toLowerCase())) {
+                tit = tit.slice(num.length).replace(/^[\s:\-]+/, '').trim();
+              }
+
+              let itemStr = '';
+              if (
+                objConhecimento &&
+                objConhecimento.toLowerCase() !== tit.toLowerCase() &&
+                !tit.toLowerCase().includes(objConhecimento.toLowerCase())
+              ) {
+                itemStr = `<strong>${num}</strong>: ${tit} <span style="color: #4b5563;">(${objConhecimento})</span>`;
+              } else {
+                itemStr = `<strong>${num}</strong>: ${tit}`;
+              }
+
+              const normKey = itemStr.toLowerCase().replace(/<[^>]*>/g, '').replace(/[^a-z0-9]/g, '');
+              if (tit && !uniqueLessonItems.some(it => it.toLowerCase().replace(/<[^>]*>/g, '').replace(/[^a-z0-9]/g, '') === normKey)) {
+                uniqueLessonItems.push(itemStr);
+              }
             });
 
             let conteudosHtml = '';
@@ -1971,7 +2271,8 @@ export default function App() {
               acoesBloomHtml += `<strong style="color: #002060;">Mobilização Socioemocional:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + competenciasSocioemocionais.map(cs => `<li style="margin-bottom: 2pt;">${cs}</li>`).join('') + `</ul>`;
             }
             if (!acoesBloomHtml) {
-              acoesBloomHtml = '<ul><li>Lembrar</li><li>Compreender</li><li>Aplicar</li></ul>';
+              const mainTopic = weekLessons[0]?.titulo || weekLessons[0]?.conteudo || componente;
+              acoesBloomHtml = `<ul><li>Analisar procedimentos técnicos e resolver situações práticas referentes a ${mainTopic}</li><li>Aplicar os conhecimentos operacionais do componente</li></ul>`;
             }
 
             let estrategiaSelected = STRATEGIES_LIST[calendarIdx % STRATEGIES_LIST.length];
@@ -2018,9 +2319,9 @@ export default function App() {
               aulas_escopo: "Não se aplica",
               conteudos: "<ul><li>Recuperação Semestral: Aplicação dos planos de recuperação semestral focados na retomada de conteúdos e habilidades essenciais do 1º semestre letivo para sanar lacunas de aprendizagem identificadas.</li></ul>",
               avaliacao: "Diagnóstica e formativa através de atividades práticas direcionadas e autoavaliação guiada.",
-              ae: "<ul><li>Recuperação e consolidação de habilidades críticas e conteúdos não assimilados no primeiro semestre.</li></ul>",
-              estrategia: "C- Estudo dirigido;",
-              acoes_bloom: "<ul><li>Identificar</li><li>Revisar</li><li>Consolidar</li></ul>",
+              ae: "Não se aplica",
+              estrategia: "C- Estudo directed;",
+              acoes_bloom: "Não se aplica",
               lessons: []
             });
 
@@ -2038,11 +2339,11 @@ export default function App() {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 7),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Revisão dos conteúdos essenciais e preparação para a Prova Paulista do 3º Bimestre",
-                avaliacao: "Diagnóstica / Formativa",
-                ae: "Revisão de todas as habilidades desenvolvidas ao longo do 3º bimestre.",
+                conteudos: "Síntese dos conteúdos essenciais e preparação para a Prova Paulista do 3º Bimestre",
+                avaliacao: "Formativa",
+                ae: "Não se aplica",
                 estrategia: "A- Aula expositiva com discussão pautada no material digital;",
-                acoes_bloom: "<ul><li>Lembrar</li><li>Aplicar</li><li>Analisar</li></ul>",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             }
@@ -2053,21 +2354,21 @@ export default function App() {
               aulas_escopo: "Não se aplica",
               conteudos: "Aplicação da Prova Paulista do 3º Bimestre",
               avaliacao: "Formativa / Prova Paulista",
-              ae: "Avaliação oficial das aprendizagens essenciais do 3º bimestre por meio da Prova Paulista.",
-              estrategia: "C- Estudo dirigido; (Aplicação de Avaliação Externa)",
-              acoes_bloom: "<ul><li>Analisar</li><li>Avaliar</li><li>Resolver</li></ul>",
+              ae: "Não se aplica",
+              estrategia: "C- Estudo directed; (Aplicação de Avaliação Externa)",
+              acoes_bloom: "Não se aplica",
               lessons: []
             });
 
-            // Week 10 (index 9) - Consolidação
+            // Week 10 (index 9) - Fechamento
             fullWeeks.push({
               periodo: getWeekPeriod(planBimester, 9),
               aulas_escopo: "Não se aplica",
-              conteudos: "Consolidação das aprendizagens e devolutiva pedagógica da Prova Paulista",
+              conteudos: "Acompanhamento das aprendizagens e devolutiva pedagógica da Prova Paulista",
               avaliacao: "Formativa / Devolutiva",
-              ae: "Consolidação e fechamento de notas/conceitos pedagógicos do bimestre.",
+              ae: "Não se aplica",
               estrategia: "C- Estudo dirigido; (Devolutiva da Prova Paulista)",
-              acoes_bloom: "<ul><li>Revisar</li><li>Consolidar</li><li>Compreender</li></ul>",
+              acoes_bloom: "Não se aplica",
               lessons: []
             });
 
@@ -2086,11 +2387,11 @@ export default function App() {
                 fullWeeks.push({
                   periodo: getWeekPeriod(planBimester, 7),
                   aulas_escopo: "Não se aplica",
-                  conteudos: "Revisão de conteúdos e preparação para a Prova Paulista",
-                  avaliacao: "Diagnóstica / Formativa",
-                  ae: "Retomada e consolidação de competências desenvolvidas ao longo do bimestre.",
+                  conteudos: "Síntese de conteúdos e preparação para a Prova Paulista",
+                  avaliacao: "Formativa",
+                  ae: "Não se aplica",
                   estrategia: "A- Aula expositiva com discussão pautada no material digital;",
-                  acoes_bloom: "<ul><li>Lembrar</li><li>Aplicar</li><li>Rever</li></ul>",
+                  acoes_bloom: "Não se aplica",
                   lessons: []
                 });
               } else if (planBimester === '2º Bimestre') {
@@ -2099,9 +2400,9 @@ export default function App() {
                   aulas_escopo: "Não se aplica",
                   conteudos: "Aplicação da Prova Paulista do 2º Bimestre",
                   avaliacao: "Formativa / Prova Paulista",
-                  ae: "Avaliação oficial das aprendizagens essenciais por meio da Prova Paulista.",
-                  estrategia: "C- Estudo dirigido; (Aplicação de Avaliação Externa)",
-                  acoes_bloom: "<ul><li>Analisar</li><li>Avaliar</li><li>Resolver</li></ul>",
+                  ae: "Não se aplica",
+                  estrategia: "C- Estudo directed; (Aplicação de Avaliação Externa)",
+                  acoes_bloom: "Não se aplica",
                   lessons: []
                 });
               } else {
@@ -2110,9 +2411,9 @@ export default function App() {
                   aulas_escopo: "Não se aplica",
                   conteudos: `Previsão SARESP (${effectiveSarespDate})`,
                   avaliacao: "Externa / SARESP",
-                  ae: "Avaliação externa do rendimento escolar por meio do SARESP.",
+                  ae: "Não se aplica",
                   estrategia: "C- Estudo dirigido; (Aplicação de Avaliação Externa)",
-                  acoes_bloom: "<ul><li>Analisar</li><li>Avaliar</li><li>Resolver</li></ul>",
+                  acoes_bloom: "Não se aplica",
                   lessons: []
                 });
               }
@@ -2123,91 +2424,167 @@ export default function App() {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 8),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Feriado: Sexta-feira Santa; Recuperação Contínua das habilidades em defasagem",
+                conteudos: "Feriado: Sexta-feira Santa; Recuperação de habilidades em defasagem",
                 avaliacao: "Formativa",
-                ae: "Nivelamento e superação de defasagens de aprendizagem.",
+                ae: "Não se aplica",
                 estrategia: "C- Estudo dirigido; (Nivelamento)",
-                acoes_bloom: "<ul><li>Resolver</li><li>Identificar</li><li>Consolidar</li></ul>",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             } else if (planBimester === '2º Bimestre') {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 8),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Recuperação Contínua e apoio pedagógico personalizado",
+                conteudos: "Recuperação e apoio pedagógico personalizado",
                 avaliacao: "Formativa",
-                ae: "Superação de defasagens e consolidação das habilidades essenciais do 2º bimestre.",
+                ae: "Não se aplica",
                 estrategia: "C- Estudo dirigido;",
-                acoes_bloom: "<ul><li>Revisar</li><li>Resolver</li><li>Superar</li></ul>",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             } else {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 8),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Recuperação Contínua final e fechamento de conceitos pendentes",
+                conteudos: "Recuperação final e fechamento de conceitos pendentes",
                 avaliacao: "Formativa",
-                ae: "Recuperação final das habilidades em defasagem ao longo do semestre letivo.",
+                ae: "Não se aplica",
                 estrategia: "C- Estudo dirigido;",
-                acoes_bloom: "<ul><li>Resolver</li><li>Revisar</li><li>Consolidar</li></ul>",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             }
 
-            // Week 10 (index 9) - Consolidation
+            // Week 10 (index 9) and Week 11 (index 10) for 4º Bimestre
             if (planBimester === '4º Bimestre') {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 9),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Consolidação de notas, frequência e Atividades de Fechamento do ano letivo",
-                avaliacao: "Formativa / Atividades de Fechamento",
-                ae: "Fechamento do ciclo letivo e consolidação das habilidades anuais.",
+                conteudos: "Recuperação Semestral Intensiva SEDUC e fechamento de notas e frequência",
+                avaliacao: "Formativa / Recuperação Semestral",
+                ae: "Não se aplica",
                 estrategia: "C- Estudo dirigido;",
-                acoes_bloom: "<ul><li>Refletir</li><li>Consolidar</li><li>Completar</li></ul>",
+                acoes_bloom: "Não se aplica",
+                lessons: []
+              });
+              fullWeeks.push({
+                periodo: getWeekPeriod(planBimester, 10),
+                aulas_escopo: "Não se aplica",
+                conteudos: "Conselho de Classe Final, Devolutivas Pedagógicas e Encerramento do Ano Letivo",
+                avaliacao: "Formativa / Conselho Final",
+                ae: "Não se aplica",
+                estrategia: "C- Estudo dirigido; (Conselho de Classe)",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             } else {
               fullWeeks.push({
                 periodo: getWeekPeriod(planBimester, 9),
                 aulas_escopo: "Não se aplica",
-                conteudos: "Consolidação e fechamento pedagógico do bimestre",
+                conteudos: "Fechamento pedagógico do bimestre",
                 avaliacao: "Formativa",
-                ae: "Consolidação e sistematização final de todas as habilidades trabalhadas no bimestre.",
+                ae: "Não se aplica",
                 estrategia: "C- Estudo dirigido;",
-                acoes_bloom: "<ul><li>Revisar</li><li>Consolidar</li><li>Compreender</li></ul>",
+                acoes_bloom: "Não se aplica",
                 lessons: []
               });
             }
           }
         } else {
           // --- STANDARD SUBJECT PLAN GENERATION (ORIGINAL LOGIC) ---
+          const getFormattedSkillWithCodeAndText = (l: any): string => {
+            const habCode = (l.habilidade || l.raw?.habilidade || l.raw?.habilidadeCodigo || '').trim();
+            const aprText = (l.aprendizagem || l.raw?.aprendizagem || l.raw?.habilidadeTexto || '').trim();
+
+            const cleanApr = aprText
+              .replace(/sistematização\s+e\s+checagem\s+de\s+retenção\s+(dos|de)?\s*conteúdos\.?/gi, '')
+              .replace(/como\s+o\s+ensino\s+(está\s+sendo|é)\s+aplicado[^\.\n;]*/gi, '')
+              .trim();
+
+            if (!habCode && !cleanApr) return '';
+
+            // If both code and description exist
+            if (habCode && cleanApr) {
+              if (cleanApr.toLowerCase().includes(habCode.toLowerCase()) && cleanApr.length > habCode.length + 5) {
+                return cleanApr;
+              }
+              if (habCode.length > 25 && habCode.toLowerCase().includes(cleanApr.toLowerCase())) {
+                return habCode;
+              }
+              if (cleanApr.toLowerCase() !== habCode.toLowerCase()) {
+                return `${habCode} - ${cleanApr}`;
+              }
+            }
+
+            const baseText = habCode || cleanApr;
+            // If text is only a skill code (e.g., EF09MA01, EM13CHS101), look up description in curriculum items
+            const matchCode = baseText.match(/^(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})/i);
+            if (matchCode) {
+              const code = matchCode[1].toUpperCase();
+              const rest = baseText.replace(new RegExp(`^${code}\\s*[:\\-]?\\s*`, 'i'), '').trim();
+              if (!rest || rest.length < 8) {
+                const foundItem = items.find(ci => 
+                  ci.habilidade && (
+                    ci.habilidade.toUpperCase().includes(code) || 
+                    (ci.aprendizagem && ci.aprendizagem.toUpperCase().includes(code))
+                  ) && ((ci.aprendizagem && ci.aprendizagem.length > 20) || (ci.habilidade && ci.habilidade.length > 20))
+                );
+                if (foundItem) {
+                  const desc = (foundItem.aprendizagem || foundItem.habilidade)
+                    .replace(new RegExp(`^${code}\\s*[:\\-]?\\s*`, 'i'), '')
+                    .trim();
+                  if (desc && desc.length > 5) {
+                    return `${code} - ${desc}`;
+                  }
+                }
+              } else {
+                return `${code} - ${rest}`;
+              }
+            }
+
+            return baseText;
+          };
+
           const formatWeekDataForSubject = (weekLessons: any[], subjectName: string, defaultAe: string, defaultConteudos: string, defaultAcoes: string) => {
             if (!weekLessons || weekLessons.length === 0) {
               return { ae: defaultAe, conteudos: defaultConteudos, acoes: defaultAcoes };
             }
 
             const subjectLower = subjectName.toLowerCase();
+
+            // Helper to build deduplicated unique lesson item strings
+            const buildUniqueLessonEntries = (lessons: any[], label = 'Aula') => {
+              const entries: string[] = [];
+              lessons.forEach(l => {
+                let tit = (l.titulo || '').replace(/^Aula\s*\d+\s*[:\-]\s*/i, '').trim();
+                let aulaNum = String(l.raw?.aula || l.raw?.aulaSala || l.aula || '').replace(/^Aula\s*/i, '').trim();
+                if (!aulaNum && !tit) return;
+                const entry = aulaNum ? `<strong>${label} ${aulaNum}</strong>: ${tit}` : `<strong>${tit}</strong>`;
+                const normKey = entry.toLowerCase().replace(/<[^>]*>/g, '').replace(/[^a-z0-9]/g, '');
+                if (!entries.some(e => e.toLowerCase().replace(/<[^>]*>/g, '').replace(/[^a-z0-9]/g, '') === normKey)) {
+                  entries.push(entry);
+                }
+              });
+              return entries;
+            };
             
             if (subjectLower.includes('projeto de vida')) {
               const firstRaw = weekLessons[0]?.raw || {};
               const dimensao = firstRaw.dimensao || '';
               const atitude = firstRaw.atitude || '';
               const pratica = firstRaw.pratica || '';
-              const contexto = firstRaw.contexto || '';
-              const questoes = firstRaw.questoes || '';
 
-              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + weekLessons.map(l => `<li style="margin-bottom: 2pt;"><strong>Aula ${l.raw?.aula || l.aula || ''}</strong>: ${l.titulo || ''}</li>`).join('') + `</ul>`;
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
               if (dimensao) conteudosHtml += `<p style="margin: 4pt 0 2pt 0;"><strong>Dimensão:</strong> ${dimensao}</p>`;
               if (atitude) conteudosHtml += `<p style="margin: 2pt 0 2pt 0;"><strong>Atitude:</strong> ${atitude}</p>`;
               if (pratica) conteudosHtml += `<p style="margin: 2pt 0 0 0;"><strong>Prática:</strong> ${pratica}</p>`;
 
-              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.habilidade || l.aprendizagem || '').filter(Boolean)));
-              let aeHtml = `<strong style="color: #002060;">Habilidades / Competências:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
 
-              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => l.raw?.compreensao || l.objetivos || '').filter(Boolean)));
-              let acoesBloomHtml = `<strong style="color: #002060;">Compreensão Esperada:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>`;
-              if (contexto) acoesBloomHtml += `<p style="margin: 4pt 0 2pt 0;"><strong>Contexto:</strong> ${contexto}</p>`;
-              if (questoes) acoesBloomHtml += `<p style="margin: 2pt 0 0 0;"><strong>Questões:</strong> ${questoes}</p>`;
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.raw?.compreensao || l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
 
               return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
             }
@@ -2218,16 +2595,17 @@ export default function App() {
               const formato = firstRaw.formato || '';
               const entrega = firstRaw.entrega || '';
 
-              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + weekLessons.map(l => `<li style="margin-bottom: 2pt;"><strong>Aula ${l.raw?.aulaSala || l.aula || ''}</strong>: ${l.titulo || ''}</li>`).join('') + `</ul>`;
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
               if (unidade) conteudosHtml += `<p style="margin: 4pt 0 2pt 0;"><strong>Unidade Temática:</strong> ${unidade}</p>`;
               if (formato) conteudosHtml += `<p style="margin: 2pt 0 2pt 0;"><strong>Formato:</strong> ${formato}</p>`;
               if (entrega) conteudosHtml += `<p style="margin: 2pt 0 0 0;"><strong>Entrega Esperada:</strong> ${entrega}</p>`;
 
-              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.habilidade || l.aprendizagem || '').filter(Boolean)));
-              let aeHtml = `<strong style="color: #002060;">Habilidades Computacionais/BNCC:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
 
-              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => l.raw?.objetivo || l.objetivos || '').filter(Boolean)));
-              let acoesBloomHtml = `<strong style="color: #002060;">Objetivos de Aprendizagem:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>`;
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.raw?.objetivo || l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
 
               return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
             }
@@ -2236,20 +2614,19 @@ export default function App() {
               const firstRaw = weekLessons[0]?.raw || {};
               const genero = firstRaw.genero || '';
               const eixo = firstRaw.eixo || '';
-              const praticas = firstRaw.praticasPedagogicas || '';
               const plataforma = firstRaw.plataforma || '';
 
-              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + weekLessons.map(l => `<li style="margin-bottom: 2pt;"><strong>Aula ${l.raw?.aula || l.aula || ''}</strong>: ${l.titulo || ''}</li>`).join('') + `</ul>`;
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
               if (genero) conteudosHtml += `<p style="margin: 4pt 0 2pt 0;"><strong>Gênero/Tema:</strong> ${genero}</p>`;
               if (eixo) conteudosHtml += `<p style="margin: 2pt 0 2pt 0;"><strong>Eixo Temático:</strong> ${eixo}</p>`;
               if (plataforma) conteudosHtml += `<p style="margin: 2pt 0 0 0;"><strong>Plataforma:</strong> ${plataforma}</p>`;
 
-              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.habilidade || l.aprendizagem || '').filter(Boolean)));
-              let aeHtml = `<strong style="color: #002060;">Habilidades Prioritárias (GPS):</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
 
-              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => l.raw?.objetivos || l.objetivos || '').filter(Boolean)));
-              let acoesBloomHtml = `<strong style="color: #002060;">Objetivos e Práticas Pedagógicas:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>`;
-              if (praticas) acoesBloomHtml += `<p style="margin: 4pt 0 0 0;"><strong>Metodologia Aplicada:</strong> ${praticas}</p>`;
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.raw?.objetivos || l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
 
               return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
             }
@@ -2259,28 +2636,73 @@ export default function App() {
               const unidade = firstRaw.unidadeTematica || '';
               const objeto = firstRaw.objetoConhecimento || '';
 
-              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + weekLessons.map(l => `<li style="margin-bottom: 2pt;"><strong>Aula ${l.raw?.aula || l.aula || ''}</strong>: ${l.titulo || ''}</li>`).join('') + `</ul>`;
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
               if (unidade) conteudosHtml += `<p style="margin: 4pt 0 2pt 0;"><strong>Unidade Temática:</strong> ${unidade}</p>`;
               if (objeto) conteudosHtml += `<p style="margin: 2pt 0 0 0;"><strong>Objeto de Conhecimento:</strong> ${objeto}</p>`;
 
-              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.habilidade || l.aprendizagem || '').filter(Boolean)));
-              let aeHtml = `<strong style="color: #002060;">Habilidades (Currículo Paulista):</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
 
-              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => l.raw?.objetivos || l.objetivos || '').filter(Boolean)));
-              let acoesBloomHtml = `<strong style="color: #002060;">Objetivos de Aprendizagem:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>`;
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.raw?.objetivos || l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
 
               return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
             }
 
             if (subjectLower.includes('redação') || subjectLower.includes('leitura')) {
-              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + weekLessons.map(l => `<li style="margin-bottom: 2pt;"><strong>Aula ${l.raw?.aula || l.aula || ''}</strong>: ${l.titulo || ''}</li>`).join('') + `</ul>`;
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas da Semana:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
 
-              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.habilidade || l.aprendizagem || '').filter(Boolean)));
-              let aeHtml = `<strong style="color: #002060;">Habilidades:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
 
-              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => l.objetivos || '').filter(Boolean)));
-              let acoesBloomHtml = `<strong style="color: #002060;">Objetivos:</strong><ul style="margin: 2pt 0 0 0; padding-left: 14pt; list-style-type: disc;">` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>`;
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
 
+              return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
+            }
+
+            if (subjectLower.includes('aprofundamento') || subjectLower.includes('itinerario') || subjectLower.includes('itinerário')) {
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas do Aprofundamento:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
+
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
+
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.objetivos || l.raw?.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
+
+              return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
+            }
+
+            if (subjectLower.includes('empreendedorismo')) {
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas de Empreendedorismo:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.aprendizagem || getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
+              return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
+            }
+
+            if (subjectLower.includes('atualidades')) {
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas de Atualidades:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.aprendizagem || getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
+              return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
+            }
+
+            if (subjectLower.includes('mídias digitais') || subjectLower.includes('midias digitais')) {
+              const uniqueLessonsList = buildUniqueLessonEntries(weekLessons);
+              let conteudosHtml = `<strong style="color: #002060;">Aulas de Arte e Mídias Digitais:</strong><ul style="margin: 2pt 0 4pt 0; padding-left: 14pt; list-style-type: disc;">` + uniqueLessonsList.map(item => `<li style="margin-bottom: 2pt;">${item}</li>`).join('') + `</ul>`;
+              const uniqueAEs = Array.from(new Set(weekLessons.map(l => l.aprendizagem || getFormattedSkillWithCodeAndText(l)).filter(Boolean)));
+              let aeHtml = uniqueAEs.length > 0 ? `<ul>` + uniqueAEs.map(ae => `<li style="margin-bottom: 2pt;">${ae}</li>`).join('') + `</ul>` : 'Não se aplica';
+              const uniqueObjectives = Array.from(new Set(weekLessons.map(l => sanitizeTextForBloom(l.objetivos || '')).filter(Boolean)));
+              let acoesBloomHtml = uniqueObjectives.length > 0 ? `<ul>` + uniqueObjectives.map(obj => `<li style="margin-bottom: 2pt;">${obj}</li>`).join('') + `</ul>` : 'Não se aplica';
               return { ae: aeHtml, conteudos: conteudosHtml, acoes: acoesBloomHtml };
             }
 
@@ -2295,10 +2717,10 @@ export default function App() {
               periodo: getWeekPeriod(planBimester, 0),
               aulas_escopo: "Não se aplica",
               conteudos: "<ul><li>Recuperação Semestral: Aplicação dos planos de recuperação semestral focados na retomada de conteúdos e habilidades essenciais do 1º semestre letivo para sanar lacunas de aprendizagem identificadas.</li></ul>",
-              avaliacao: "Diagnóstica e formativa através de atividades práticas direcionadas e autoavaliação guiada.",
-              ae: "<ul><li>Recuperação e consolidação de habilidades críticas e conteúdos não assimilados no primeiro semestre.</li></ul>",
+              avaliacao: "Formativa através de atividades práticas direcionadas e autoavaliação guiada.",
+              ae: "<ul><li>Recuperação e síntese de habilidades críticas e conteúdos do primeiro semestre.</li></ul>",
               estrategia: "C- Estudo dirigido;",
-              acoes_bloom: "<ul><li>Identificar</li><li>Revisar</li><li>Consolidar</li></ul>",
+              acoes_bloom: "<ul><li>Identificar</li><li>Sintetizar</li><li>Compreender</li></ul>",
               lessons: []
             });
 
@@ -2326,7 +2748,7 @@ export default function App() {
               // 2. ae (Aprendizagem Essencial)
               const uniqueAEs: string[] = [];
               weekLessons.forEach(l => {
-                const text = (l.aprendizagem || l.habilidade || '').trim();
+                const text = getFormattedSkillWithCodeAndText(l);
                 if (!text) return;
                 const lines = text.split('\n').map(line => line.replace(/^[•\s\-\*]+/, '').trim()).filter(Boolean);
                 lines.forEach(line => {
@@ -2343,19 +2765,46 @@ export default function App() {
               // 3. conteudos
               const uniqueContents: string[] = [];
               weekLessons.forEach(l => {
-                const title = (l.titulo || '').trim();
-                const content = (l.conteudo || '').trim();
-                let displayText = title;
-                if (content && content !== title) {
-                  displayText = `${title}: ${content}`;
+                let title = (l.titulo || '').trim();
+                let content = (l.conteudo || '').trim();
+
+                // Strip repeated "Aula X:" prefixes
+                title = title.replace(/^Aula\s*\d+\s*[:\-]\s*/i, '').trim();
+                content = content.replace(/^Aula\s*\d+\s*[:\-]\s*/i, '').trim();
+
+                // Remove skill codes from content field to avoid redundancy with AE
+                title = title.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+                content = content.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+
+                let displayText = '';
+                if (!title && !content) {
+                  return;
+                } else if (!content || content.toLowerCase() === title.toLowerCase()) {
+                  displayText = title;
+                } else if (!title) {
+                  displayText = content;
+                } else {
+                  const contentLower = content.toLowerCase();
+                  const titleLower = title.toLowerCase();
+                  if (contentLower.includes(titleLower)) {
+                    displayText = content;
+                  } else if (titleLower.includes(contentLower)) {
+                    displayText = title;
+                  } else {
+                    displayText = `${title}: ${content}`;
+                  }
                 }
+
                 // Strip "Atividade Verificadora" from contents
                 displayText = displayText
                   .replace(/atividade\s+verificadora(\s+de\s+aprendizagem)?/gi, '')
                   .replace(/Atividade\s+Verificadora(\s+de\s+Aprendizagem)?/gi, '')
+                  .replace(/^[\s:\-]+/, '')
                   .replace(/:\s*$/, '')
                   .trim();
-                if (displayText && !uniqueContents.includes(displayText)) {
+
+                const normKey = displayText.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (displayText && !uniqueContents.some(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === normKey)) {
                   uniqueContents.push(displayText);
                 }
               });
@@ -2371,15 +2820,18 @@ export default function App() {
                 if (!text) return;
                 const lines = text.split('\n').map(line => line.replace(/^[•\s\-\*]+/, '').trim()).filter(Boolean);
                 lines.forEach(line => {
-                  if (!uniqueObjectives.includes(line)) {
-                    uniqueObjectives.push(line);
+                  const sanitized = sanitizeTextForBloom(line);
+                  if (sanitized && !uniqueObjectives.includes(sanitized)) {
+                    uniqueObjectives.push(sanitized);
                   }
                 });
               });
 
+              const primaryTopicBim3 = (uniqueContents[0] || planSubject).replace(/^[^:]*:\s*/, '').replace(/<[^>]*>/g, '').trim();
+
               const acoesBloomHtml = uniqueObjectives.length > 0
                 ? `<ul>` + uniqueObjectives.map(obj => `<li>${obj}</li>`).join('') + `</ul>`
-                : '<ul><li>Lembrar</li><li>Compreender</li><li>Aplicar</li></ul>';
+                : `<ul><li>Analisar conceitos e procedimentos de ${primaryTopicBim3}</li><li>Resolver situações-problema aplicando as habilidades do componente</li></ul>`;
 
               // 5. estrategia
               let estrategiaSelected = STRATEGIES_LIST[i % STRATEGIES_LIST.length];
@@ -2437,7 +2889,7 @@ export default function App() {
               // 2. ae (Aprendizagem Essencial)
               const uniqueAEs: string[] = [];
               weekLessons.forEach(l => {
-                const text = (l.aprendizagem || l.habilidade || '').trim();
+                const text = getFormattedSkillWithCodeAndText(l);
                 if (!text) return;
                 const lines = text.split('\n').map(line => line.replace(/^[•\s\-\*]+/, '').trim()).filter(Boolean);
                 lines.forEach(line => {
@@ -2454,19 +2906,46 @@ export default function App() {
               // 3. conteudos
               const uniqueContents: string[] = [];
               weekLessons.forEach(l => {
-                const title = (l.titulo || '').trim();
-                const content = (l.conteudo || '').trim();
-                let displayText = title;
-                if (content && content !== title) {
-                  displayText = `${title}: ${content}`;
+                let title = (l.titulo || '').trim();
+                let content = (l.conteudo || '').trim();
+
+                // Strip repeated "Aula X:" prefixes
+                title = title.replace(/^Aula\s*\d+\s*[:\-]\s*/i, '').trim();
+                content = content.replace(/^Aula\s*\d+\s*[:\-]\s*/i, '').trim();
+
+                // Remove skill codes from content field to avoid redundancy with AE
+                title = title.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+                content = content.replace(/\b(EF\d{2}[A-Z]{2}\d{2}|EM\d{2}[A-Z]{3}\d{3})\b\s*[:\-]?\s*/gi, '').trim();
+
+                let displayText = '';
+                if (!title && !content) {
+                  return;
+                } else if (!content || content.toLowerCase() === title.toLowerCase()) {
+                  displayText = title;
+                } else if (!title) {
+                  displayText = content;
+                } else {
+                  const contentLower = content.toLowerCase();
+                  const titleLower = title.toLowerCase();
+                  if (contentLower.includes(titleLower)) {
+                    displayText = content;
+                  } else if (titleLower.includes(contentLower)) {
+                    displayText = title;
+                  } else {
+                    displayText = `${title}: ${content}`;
+                  }
                 }
+
                 // Strip "Atividade Verificadora" from contents
                 displayText = displayText
                   .replace(/atividade\s+verificadora(\s+de\s+aprendizagem)?/gi, '')
                   .replace(/Atividade\s+Verificadora(\s+de\s+Aprendizagem)?/gi, '')
+                  .replace(/^[\s:\-]+/, '')
                   .replace(/:\s*$/, '')
                   .trim();
-                if (displayText && !uniqueContents.includes(displayText)) {
+
+                const normKey = displayText.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (displayText && !uniqueContents.some(c => c.toLowerCase().replace(/[^a-z0-9]/g, '') === normKey)) {
                   uniqueContents.push(displayText);
                 }
               });
@@ -2482,15 +2961,18 @@ export default function App() {
                 if (!text) return;
                 const lines = text.split('\n').map(line => line.replace(/^[•\s\-\*]+/, '').trim()).filter(Boolean);
                 lines.forEach(line => {
-                  if (!uniqueObjectives.includes(line)) {
-                    uniqueObjectives.push(line);
+                  const sanitized = sanitizeTextForBloom(line);
+                  if (sanitized && !uniqueObjectives.includes(sanitized)) {
+                    uniqueObjectives.push(sanitized);
                   }
                 });
               });
 
+              const primaryTopicNorm = (uniqueContents[0] || planSubject).replace(/^[^:]*:\s*/, '').replace(/<[^>]*>/g, '').trim();
+
               const acoesBloomHtml = uniqueObjectives.length > 0
                 ? `<ul>` + uniqueObjectives.map(obj => `<li>${obj}</li>`).join('') + `</ul>`
-                : '<ul><li>Lembrar</li><li>Compreender</li><li>Aplicar</li></ul>';
+                : `<ul><li>Analisar conceitos e propriedades de ${primaryTopicNorm}</li><li>Resolver problemas aplicando as habilidades curriculares</li></ul>`;
 
               // 5. estrategia
               let estrategiaSelected = STRATEGIES_LIST[i % STRATEGIES_LIST.length];
@@ -2535,11 +3017,11 @@ export default function App() {
             fullWeeksStandard.push({
               periodo: getWeekPeriod(planBimester, 7),
               aulas_escopo: "Não se aplica",
-              conteudos: "Revisão dos conteúdos essenciais e preparação para a Prova Paulista do 3º Bimestre",
-              avaliacao: "Diagnóstica / Formativa",
-              ae: "Revisão de todas as habilidades desenvolvidas ao longo do 3º bimestre.",
+              conteudos: "Síntese dos conteúdos essenciais e preparação para a Prova Paulista do 3º Bimestre",
+              avaliacao: "Formativa",
+              ae: "Não se aplica",
               estrategia: "A- Aula expositiva com discussão pautada no material digital;",
-              acoes_bloom: "<ul><li>Lembrar</li><li>Aplicar</li><li>Analisar</li></ul>"
+              acoes_bloom: "Não se aplica"
             });
             // Week 9 (21 a 25/09/2026) - Prova Paulista
             fullWeeksStandard.push({
@@ -2547,51 +3029,88 @@ export default function App() {
               aulas_escopo: "Não se aplica",
               conteudos: "Aplicação da Prova Paulista do 3º Bimestre (Período: 21 a 25/09/2026)",
               avaliacao: "Formativa / Prova Paulista",
-              ae: "Avaliação oficial das aprendizagens essenciais do 3º bimestre por meio da Prova Paulista.",
+              ae: "Não se aplica",
               estrategia: "C- Estudo dirigido; (Aplicação de Avaliação Externa)",
-              acoes_bloom: "<ul><li>Analisar</li><li>Avaliar</li><li>Resolver</li></ul>"
+              acoes_bloom: "Não se aplica"
             });
             // Week 10 (28/09 a 02/10/2026)
             fullWeeksStandard.push({
               periodo: getWeekPeriod(planBimester, 9),
               aulas_escopo: "Não se aplica",
-              conteudos: "Fechamento de notas, conselho de classe, devolutiva da Prova Paulista e consolidação das aprendizagens",
+              conteudos: "Fechamento de notas, conselho de classe, devolutiva da Prova Paulista e acompanhamento das aprendizagens",
               avaliacao: "Somativa / Final",
-              ae: "Sistematização e consolidação final das aprendizagens essenciais do 3º bimestre.",
+              ae: "Não se aplica",
               estrategia: "J- Rotação por estações;",
-              acoes_bloom: "<ul><li>Avaliar</li><li>Refletir</li></ul>"
+              acoes_bloom: "Não se aplica"
+            });
+          } else if (is4thBimestre) {
+            // Week 8 (23/11 a 27/11/2026)
+            fullWeeksStandard.push({
+              periodo: getWeekPeriod(planBimester, 7),
+              aulas_escopo: "Não se aplica",
+              conteudos: `Síntese Geral e aplicação da Avaliação SARESP (Período: 23 a 27/11/2026)`,
+              avaliacao: "Formativa / SARESP",
+              ae: "Não se aplica",
+              estrategia: "A- Aula expositiva com discussão pautada no material digital;",
+              acoes_bloom: "Não se aplica"
+            });
+            // Week 9 (30/11 a 04/12/2026)
+            fullWeeksStandard.push({
+              periodo: getWeekPeriod(planBimester, 8),
+              aulas_escopo: "Não se aplica",
+              conteudos: "Conclusão do SARESP Digital (8º ano) e Reposição do SARESP (02 e 03/12/2026)",
+              avaliacao: "Formativa / Reposição",
+              ae: "Não se aplica",
+              estrategia: "C- Estudo dirigido;",
+              acoes_bloom: "Não se aplica"
+            });
+            // Week 10 (07/12 a 11/12/2026)
+            fullWeeksStandard.push({
+              periodo: getWeekPeriod(planBimester, 9),
+              aulas_escopo: "Não se aplica",
+              conteudos: "Recuperação Semestral Intensiva SEDUC (07, 08 e 09/12/2026) e superação de defasagens pedagógicas",
+              avaliacao: "Formativa / Recuperação",
+              ae: "Não se aplica",
+              estrategia: "J- Rotação por estações; (Recuperação Intensiva)",
+              acoes_bloom: "Não se aplica"
+            });
+            // Week 11 (14/12 a 18/12/2026)
+            fullWeeksStandard.push({
+              periodo: getWeekPeriod(planBimester, 10),
+              aulas_escopo: "Não se aplica",
+              conteudos: "Conselho de Classe Final, Fechamento de Médias e Encerramento do Ano Letivo (18/12/2026)",
+              avaliacao: "Somativa / Final",
+              ae: "Não se aplica",
+              estrategia: "J- Rotação por estações; (Conselho Final e Encerramento)",
+              acoes_bloom: "Não se aplica"
             });
           } else {
             fullWeeksStandard.push({
               periodo: getWeekPeriod(planBimester, 7),
               aulas_escopo: "Não se aplica",
-              conteudos: is4thBimestre 
-                ? `Revisão Geral e aplicação da Avaliação SARESP (Data/Período: ${effectiveSarespDate})` 
-                : "Revisão Geral e aplicação da Prova Paulista",
-              avaliacao: is4thBimestre ? "Formativa / SARESP" : "Formativa / Prova Paulista",
-              ae: is4thBimestre 
-                ? `Revisão de todas as habilidades desenvolvidas ao longo do ano letivo para o SARESP (${effectiveSarespDate}).` 
-                : "Revisão de todas as habilidades desenvolvidas ao longo do bimestre.",
+              conteudos: "Síntese Geral e aplicação da Prova Paulista",
+              avaliacao: "Formativa / Prova Paulista",
+              ae: "Não se aplica",
               estrategia: "A- Aula expositiva com discussão pautada no material digital;",
-              acoes_bloom: "<ul><li>Lembrar</li><li>Aplicar</li><li>Analisar</li></ul>"
+              acoes_bloom: "Não se aplica"
             });
             fullWeeksStandard.push({
               periodo: getWeekPeriod(planBimester, 8),
               aulas_escopo: "Não se aplica",
               conteudos: "Retomada de habilidades e conceitos com maior defasagem pedagógica",
-              avaliacao: "Diagnóstica / Formativa",
-              ae: "Atividades de reforço e retomada focadas nos descritores menos consolidados.",
+              avaliacao: "Formativa",
+              ae: "Não se aplica",
               estrategia: "C- Estudo dirigido;",
-              acoes_bloom: "<ul><li>Corrigir</li><li>Identificar</li><li>Compreender</li></ul>"
+              acoes_bloom: "Não se aplica"
             });
             fullWeeksStandard.push({
               periodo: getWeekPeriod(planBimester, 9),
               aulas_escopo: "Não se aplica",
-              conteudos: "Fechamento de notas, conselho de classe e consolidação das aprendizagens",
+              conteudos: "Fechamento de notas, conselho de classe e acompanhamento das aprendizagens",
               avaliacao: "Somativa / Final",
-              ae: "Sistematização e consolidação das aprendizagens essenciais estabelecidas no currículo paulista.",
+              ae: "Não se aplica",
               estrategia: "J- Rotação por estações;",
-              acoes_bloom: "<ul><li>Avaliar</li><li>Refletir</li></ul>"
+              acoes_bloom: "Não se aplica"
             });
           }
 
@@ -2623,9 +3142,9 @@ export default function App() {
       ? previous.map((l: any, index: number) => {
           return `- Aula ${l.aula || index + 1}: ${l.titulo || ''}\n  Conteúdo: ${l.conteudo || ''}\n  Habilidade: ${l.habilidade || ''}`;
         }).join('\n')
-      : 'Revisão geral dos conteúdos do bimestre.';
+      : `Conteúdos curriculares de ${planSubject} (${planGrade} - ${planBimester}).`;
 
-    const skillsText = Array.from(new Set(previous.map((l: any) => l.habilidade || '').filter(Boolean))).join('\n') || 'Retomada de habilidades críticas do Currículo Paulista.';
+    const skillsText = Array.from(new Set(previous.map((l: any) => l.habilidade || '').filter(Boolean))).join('\n') || `Habilidades oficiais de ${planSubject} (${planGrade} - ${planBimester}).`;
 
     const rawPromptText = `Atue como um Professor Mentor especialista do Currículo Paulista de 2026.
 Preciso de uma Atividade Verificadora de Aprendizagem de alta qualidade e pronta para aplicação, focada nos conteúdos ministrados nas últimas aulas.
@@ -2635,20 +3154,21 @@ Aqui estão as informações do plano:
 - Ano/Série: ${planGrade}
 - Bimestre: ${planBimester}
 
-As aulas anteriores ministradas foram:
+Aulas e Objetos de Conhecimento trabalhados:
 ${lessonsText}
 
-Habilidades trabalhadas até o momento:
+Habilidades curriculares focais:
 ${skillsText}
 
-Instruções para Elaboração da Atividade Verificadora:
-1. **Estrutura**: Crie 3 a 5 questões desafiadoras e contextualizadas com a realidade dos alunos do ${planGrade}.
-2. **Tipos de Questões**:
-   - Questões de múltipla escolha (com 4 alternativas de A a D, justificando por que a alternativa correta é a certa e o erro comum das distratoras).
-   - Questão dissertativa/prática baseada em resolução de problemas ou situação real.
-3. **Foco**: Diagnosticar a real retenção dos conteúdos anteriores, identificar lacunas de aprendizagem e preparar os alunos para a Prova Paulista 2026.
-4. **Metodologia**: Inclua um pequeno roteiro de autoavaliação (ex: "O que eu aprendi?", "Onde tive mais dificuldade?") para que o estudante faça a checagem metacognitiva.
-5. **Gabarito**: Forneça o gabarito detalhado com orientações para o professor fazer a devolutiva (feedback rápido).
+DIRETRIZES OBRIGATÓRIAS DE ELABORAÇÃO:
+1. NÃO faça referências a "revisão" nem inclua frases que expliquem como o ensino está sendo aplicado nos campos de Aprendizagem Essencial e Taxonomia de Bloom.
+2. NÃO crie frases genéricas de modo algum. Todos os enunciados, alternativas, justificativas e habilidades devem ser específicos, técnicos e contextuais ao conteúdo.
+3. Estrutura da Atividade:
+   - 3 a 5 questões contextualizadas com a realidade dos alunos do ${planGrade}.
+   - Questões de múltipla escolha (com 4 alternativas de A a D, justificando a alternativa correta e o erro conceitual das distratoras).
+   - Questão dissertativa ou prática de resolução de problemas.
+   - Roteiro de autoavaliação guiada com foco no protagonismo discente.
+   - Gabarito detalhado com orientações para devolutiva pedagógica direta.
 
 Gere o documento formatado em Markdown pronto para ser copiado e impresso.`;
 
@@ -3612,364 +4132,12 @@ ${tablesCleanHtml}
     }
   };
 
-  if (!hasEntered) {
-    return (
-      <div className="bg-[#F3F5F8] text-slate-800 font-sans min-h-screen flex flex-col selection:bg-blue-100 selection:text-blue-900" translate="no" lang="pt-BR">
-        {/* HEADER */}
-        <header className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-2xs">
-          <div className="max-w-6xl mx-auto px-6 py-3.5 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-tr from-blue-700 to-indigo-600 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-lg font-extrabold text-slate-900 tracking-tight block">
-                  Currículo Priorizado
-                </span>
-                <span className="text-[10px] text-blue-700 font-bold tracking-wider uppercase leading-none block">
-                  SEDUC-SP • 2026
-                </span>
-              </div>
-            </div>
-            <nav className="space-x-5 text-sm text-slate-600 font-semibold flex items-center">
-              <a href="#inicio" className="hover:text-blue-600 transition-colors">Início</a>
-              <a href="#sobre" className="hover:text-blue-600 transition-colors">Sobre</a>
-              <a href="#comentarios" className="hover:text-blue-600 transition-colors">Avaliações</a>
-              
-              {/* Highlighted Apoie button in Nav */}
-              <a 
-                href="#apoio" 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-full text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer transform hover:scale-105"
-              >
-                <span className="text-sm">💚</span>
-                <span>Apoie o Projeto</span>
-              </a>
-
-              <button 
-                onClick={() => {
-                  setHasEntered(true);
-                  try { localStorage.setItem('curr_priorizado_entered', 'true'); } catch (e) {}
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-xs cursor-pointer ml-2"
-              >
-                Acessar Plataforma
-              </button>
-            </nav>
-          </div>
-        </header>
-
-        {/* HERO */}
-        <section id="inicio" className="bg-gradient-to-b from-slate-100/80 via-slate-50 to-emerald-50/20 py-16 md:py-24 border-b border-slate-200/70 relative overflow-hidden">
-          <div className="max-w-5xl mx-auto px-6 text-center space-y-6 relative z-10">
-            {/* Soft highlight badges */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <span className="text-xs bg-blue-100/80 text-blue-800 font-extrabold px-3.5 py-1 rounded-full uppercase tracking-wider border border-blue-200/60 shadow-2xs">
-                Inovação Pedagógica 2026
-              </span>
-              <a 
-                href="#apoio" 
-                className="text-xs bg-emerald-100/80 hover:bg-emerald-200/80 text-emerald-800 font-extrabold px-3.5 py-1 rounded-full border border-emerald-200/80 shadow-2xs transition flex items-center gap-1"
-              >
-                <span>💚 Projeto Aberto para Professores</span>
-                <span className="underline ml-1 text-[11px]">Apoie via Pix</span>
-              </a>
-            </div>
-
-            <h2 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight text-slate-900">
-              Planejamento mais simples para o professor
-            </h2>
-            <p className="text-slate-600 text-lg md:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
-              Organize conteúdos, priorize habilidades e tenha mais clareza no seu dia a dia em sala de aula de acordo com a Matriz Curricular Paulista de 2026.
-            </p>
-            <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-              <button 
-                onClick={() => {
-                  setHasEntered(true);
-                  try { localStorage.setItem('curr_priorizado_entered', 'true'); } catch (e) {}
-                }}
-                className="bg-blue-600 text-white px-8 py-3.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-md hover:shadow-lg w-full sm:w-auto cursor-pointer"
-              >
-                Acessar plataforma
-              </button>
-              <a 
-                href="#sobre" 
-                className="text-slate-700 hover:text-blue-600 font-semibold text-sm transition px-6 py-3 border border-slate-200 rounded-xl bg-slate-50/80 hover:bg-slate-100 w-full sm:w-auto shadow-2xs"
-              >
-                Saiba Mais
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* BENEFÍCIOS */}
-        <section className="py-16 md:py-20 bg-slate-100/60">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
-              <h3 className="text-2xl font-bold text-slate-900">Benefícios Exclusivos</h3>
-              <p className="text-slate-500 text-sm">Projetado com base nas necessidades reais da rotina docente paulista</p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-slate-50/90 p-8 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-11 h-11 rounded-xl bg-blue-100/80 text-blue-700 flex items-center justify-center mb-5 shadow-2xs">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-lg mb-3">Mais organização</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    Estruture seus conteúdos e cronogramas bimestrais de forma totalmente digital, organizada e acessível de qualquer lugar.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50/90 p-8 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-11 h-11 rounded-xl bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-5 shadow-2xs">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-lg mb-3">Foco no essencial</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    Priorize as habilidades estruturantes, conteúdos nucleares e avaliações diagnósticas essenciais para acelerar o aprendizado dos estudantes.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50/90 p-8 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-11 h-11 rounded-xl bg-indigo-100/80 text-indigo-700 flex items-center justify-center mb-5 shadow-2xs">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-lg mb-3">Facilidade no dia a dia</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    Gere planos de aula completos e relatórios de recuperação em poucos cliques. Gaste menos tempo planejando burocracias e mais tempo ensinando.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SOBRE */}
-        <section id="sobre" className="bg-gradient-to-b from-slate-50 via-slate-100/60 to-slate-50 py-16 md:py-20 border-y border-slate-200/70">
-          <div className="max-w-5xl mx-auto px-6 space-y-10">
-            <div className="text-center space-y-4 max-w-3xl mx-auto">
-              <span className="text-xs bg-indigo-100/80 text-indigo-800 font-bold px-3.5 py-1 rounded-full uppercase tracking-wider border border-indigo-200/60">
-                Transparência & Uso Livre
-              </span>
-              <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
-                Pensado para professores
-              </h2>
-              <p className="text-slate-600 leading-relaxed text-base md:text-lg font-normal">
-                Esta ferramenta foi desenvolvida para apoiar o planejamento pedagógico e a elaboração de planos de aula e recuperação de forma prática, ajudando professores a tomarem decisões com mais segurança.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 pt-2">
-              <div className="bg-white/80 backdrop-blur-xs border border-slate-200/90 p-6 rounded-2xl space-y-3 shadow-2xs">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg">
-                  🔒
-                </div>
-                <h4 className="font-bold text-sm text-slate-800">Sistema Aberto & Privacidade</h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  O sistema é aberto e <strong>não armazena nenhum dado pessoal ou pedagógico dos usuários em servidores</strong>. Todas as informações e planejamentos permanecem estritamente no seu próprio navegador.
-                </p>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-xs border border-slate-200/90 p-6 rounded-2xl space-y-3 shadow-2xs">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg">
-                  🛠️
-                </div>
-                <h4 className="font-bold text-sm text-slate-800">Em Desenvolvimento Ativo</h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Trata-se de um <strong>sistema em contínuo desenvolvimento</strong>. Por estar em fase de aprimoramento constante, pequenas inconsistências ou erros podem eventualmente ocorrer.
-                </p>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-xs border border-slate-200/90 p-6 rounded-2xl space-y-3 shadow-2xs">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
-                  🤖
-                </div>
-                <h4 className="font-bold text-sm text-slate-800">Varredura de Escopo por IA</h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  A <strong>varredura do escopo e sequência das aulas foi realizada por Inteligência Artificial de forma automatizada</strong>. O docente pode revisar e adaptar livremente os conteúdos conforme a necessidade da turma.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* APOIO & PIX DONATION (PROMINENT HIGHLIGHTED SECTION) */}
-        <section id="apoio" className="py-16 md:py-24 bg-gradient-to-b from-slate-100/80 via-emerald-50/40 to-slate-100/80 border-b border-slate-200/80 relative">
-          <div className="max-w-5xl mx-auto px-6">
-            <div className="bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-900 text-white rounded-3xl p-8 md:p-12 shadow-xl border-2 border-emerald-500/30 relative overflow-hidden space-y-8">
-              
-              {/* Decorative background glow */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-10 relative z-10">
-                <div className="space-y-5 max-w-xl text-center lg:text-left">
-                  <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 font-extrabold px-4 py-1.5 rounded-full text-xs tracking-wider uppercase border border-emerald-400/30">
-                    <span>💚 Projeto Aberto para Professores</span>
-                  </div>
-                  <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                    Apoie a continuidade do projeto!
-                  </h3>
-                  <p className="text-emerald-100/90 text-sm md:text-base leading-relaxed">
-                    Esta ferramenta é <strong>100% gratuita e aberta para todos os professores</strong>. Se ela tem sido útil no seu planejamento e você quiser apoiar os custos do servidor e o trabalho do professor desenvolvedor, qualquer valor via Pix é profundamente apreciado.
-                  </p>
-                  
-                  <div className="bg-emerald-900/50 border border-emerald-500/30 text-emerald-200 text-xs p-4 rounded-xl flex items-start gap-3 text-left">
-                    <span className="text-xl shrink-0">💡</span>
-                    <span>
-                      <strong>Doação estritamente voluntária:</strong> O uso do sistema é e sempre será gratuito. Doe apenas se achar devido e quiser apoiar o projeto!
-                    </span>
-                  </div>
-                </div>
-
-                {/* QR Code and Copy Box */}
-                <div className="bg-white/95 text-slate-900 p-6 rounded-2xl shadow-2xl space-y-4 shrink-0 w-full max-w-xs text-center border border-white/40">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-600">QR Code Pix</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Funcional</span>
-                  </div>
-
-                  {/* Scannable Pix BR Code QR Image */}
-                  <div className="bg-white p-3 border-2 border-emerald-100 rounded-xl inline-block shadow-inner">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(pixPayload)}`} 
-                      alt="QR Code Pix Funcional" 
-                      className="w-44 h-44 mx-auto block object-contain"
-                    />
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 font-medium leading-tight">
-                    Escaneie pelo aplicativo de qualquer banco (Nubank, Itaú, BB, Bradesco, Inter, Caixa, etc.)
-                  </p>
-
-                  <div className="space-y-2 pt-1">
-                    {/* Primary Copia e Cola button */}
-                    <button
-                      onClick={handleCopyPixCode}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold py-2.5 px-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {copiedPixCode ? (
-                        <>
-                          <span className="text-sm">✓</span>
-                          <span>Pix Copia e Cola Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                          </svg>
-                          <span>Copiar Pix Copia e Cola</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Secondary UUID Key button */}
-                    <button
-                      onClick={handleCopyPixKey}
-                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 px-3 rounded-lg text-[11px] transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-300"
-                    >
-                      {copiedPixKey ? (
-                        <span>✓ Chave Copiada!</span>
-                      ) : (
-                        <span>Copiar apenas a chave (UUID)</span>
-                      )}
-                    </button>
-
-                    <span className="text-[10px] text-slate-400 block font-mono select-all pt-1">
-                      272c5784-fca9-457d-b6de-7ebaaf3e888a
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* COMENTÁRIOS E AVALIAÇÕES DOS PROFESSORES */}
-        <LandingComments showToast={showToast} />
-
-        {/* CTA */}
-        <section className="py-20 bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden">
-          {/* Subtle geometric overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <svg width="100%" height="100%">
-              <pattern id="grid_cta" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
-              </pattern>
-              <rect width="100%" height="100%" fill="url(#grid_cta)" />
-            </svg>
-          </div>
-          
-          <div className="max-w-4xl mx-auto px-6 text-center space-y-6 relative z-10">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Comece agora mesmo
-            </h2>
-            <p className="text-indigo-200 text-base md:text-lg max-w-xl mx-auto">
-              Acesse a plataforma hoje e facilite todo o seu planejamento curricular e plano de recuperação.
-            </p>
-            <div className="pt-4">
-              <button 
-                onClick={() => {
-                  setHasEntered(true);
-                  try { localStorage.setItem('curr_priorizado_entered', 'true'); } catch (e) {}
-                }}
-                className="bg-white text-indigo-950 hover:bg-slate-100 px-8 py-4 rounded-xl font-black text-sm transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform cursor-pointer inline-flex items-center gap-2"
-              >
-                <span>Entrar no Sistema</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* AVISO LEGAL DE GRATUIDADE E DIREITOS AUTORAIS SEDUC-SP */}
-        <section className="bg-amber-500/10 border-t border-b border-amber-500/20 py-8 px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-3">
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-900 font-extrabold px-3.5 py-1 rounded-full text-xs uppercase tracking-wider border border-amber-300">
-              <span>⚠️ Aviso Importante & Isenção de Vínculo</span>
-            </div>
-            <p className="text-slate-800 text-xs md:text-sm font-medium leading-relaxed max-w-3xl mx-auto">
-              O Gerador de Currículo é uma ferramenta independente e gratuita de apoio pedagógico aos professores. O escopo-sequência baseia-se em dados curriculares públicos da SEDUC-SP. As contribuições são 100% voluntárias e destinadas exclusivamente à manutenção dos servidores e melhoria da plataforma. A página não possui qualquer vínculo com a Secretaria de Educação.
-            </p>
-          </div>
-        </section>
-
-        {/* FOOTER */}
-        <footer className="bg-slate-200/80 border-t border-slate-300/80 py-8">
-          <div className="max-w-6xl mx-auto px-6 text-xs text-slate-600 text-center space-y-2">
-            <div>
-              © 2026 Currículo Priorizado • Uso educacional para a Rede Estadual de São Paulo (SEDUC-SP).
-            </div>
-            <div className="text-slate-500">
-              Desenvolvido por professores da rede estadual com tecnologias inovadoras. Todos os direitos reservados.
-            </div>
-          </div>
-        </footer>
-      </div>
-    );
-  }
-
   return (
-    <AppLayout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
-      onReturnToLanding={() => {
-        setHasEntered(false);
-        try { localStorage.setItem('curr_priorizado_entered', 'false'); } catch (e) {}
+    <AppLayout
+      activeTab={activeTab}
+      setActiveTab={(tab) => {
+        setActiveTab(tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }}
       favoritesCount={
         (() => {
@@ -3980,230 +4148,15 @@ ${tablesCleanHtml}
             return 0;
           }
         })()
-      } 
+      }
       onShowTour={() => setShowTour(true)}
+      saveStatus={isAutosaving ? 'saving' : 'saved'}
     >
       <div className={`${
         appTypography === 'space' ? 'font-space' : appTypography === 'mono' ? 'font-mono' : appTypography === 'serif' ? 'font-serif' : 'font-sans'
       } ${borderStyle === 'sharp' ? 'style-sharp' : 'style-rounded'}`}>
-        
-        {activeTab === 'dashboard' && (
-          <DashboardPage
-            totalItems={items.length}
-            totalSkills={new Set(items.flatMap((i) => i.habilidade.split(/[\s,]+/).filter(Boolean))).size}
-            favoritesCount={
-              (() => {
-                try {
-                  const saved = localStorage.getItem('saved_curriculum_favorites');
-                  return saved ? JSON.parse(saved).length : 0;
-                } catch {
-                  return 0;
-                }
-              })()
-            }
-            updateCount={updateCount}
-            lastUpdateFormatted={lastUpdateFormatted}
-            onNavigate={(tab) => setActiveTab(tab)}
-            onShowTour={() => setShowTour(true)}
-          />
-        )}
 
-        {activeTab === 'favorites' && (
-          <FavoritesPage
-            items={items}
-            favorites={
-              (() => {
-                try {
-                  const saved = localStorage.getItem('saved_curriculum_favorites');
-                  return saved ? JSON.parse(saved) : [];
-                } catch {
-                  return [];
-                }
-              })()
-            }
-            onToggleFavorite={(cardItem) => {
-              try {
-                const saved = localStorage.getItem('saved_curriculum_favorites');
-                const favs = saved ? JSON.parse(saved) : [];
-                const idStr = String(cardItem.id);
-                let nextFavs;
-                if (favs.includes(idStr)) {
-                  nextFavs = favs.filter((f: string) => f !== idStr);
-                  showToast("Item removido dos favoritos!");
-                } else {
-                  nextFavs = [...favs, idStr];
-                  showToast("Item adicionado aos favoritos!");
-                }
-                localStorage.setItem('saved_curriculum_favorites', JSON.stringify(nextFavs));
-                setItems(prev => [...prev]);
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-            onViewDetails={(detailItem) => {
-              showToast(`Carregando detalhes de ${detailItem.habilidade || 'item'}...`);
-            }}
-            onClearAll={() => {
-              if (window.confirm("Deseja realmente limpar todos os favoritos salvos?")) {
-                localStorage.setItem('saved_curriculum_favorites', JSON.stringify([]));
-                setItems(prev => [...prev]);
-                showToast("Todos os favoritos foram limpos!");
-              }
-            }}
-          />
-        )}
-
-        {activeTab === 'settings' && (
-          <SettingsPage
-            appTypography={appTypography}
-            setAppTypography={setAppTypography}
-            borderStyle={borderStyle}
-            setBorderStyle={setBorderStyle}
-            onResetData={handleResetData}
-            updateCount={updateCount}
-            lastUpdateFormatted={lastUpdateFormatted}
-          />
-        )}
-
-        {activeTab === 'curriculum' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-            
-            {/* Bento Column Left: Statistics, AI Actions and Export */}
-            <div className="space-y-6 lg:col-span-1">
-              
-              {/* Bento Block 1: Statistics Card */}
-              <div className="bg-white rounded border border-gray-200 p-6 shadow-sm space-y-4">
-                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider">
-                  Resumo Curricular
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded border border-gray-100">
-                    <div className="text-gray-400 text-xs font-semibold">Total de Aulas</div>
-                    <div className="text-3xl font-extrabold text-gray-800 mt-1">{items.length}</div>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded border border-gray-100">
-                    <div className="text-gray-400 text-xs font-semibold">Habilidades Únicas</div>
-                    <div className="text-3xl font-extrabold text-emerald-600 mt-1">
-                      {new Set(items.flatMap((i) => i.habilidade.split(/[\s,]+/).filter(Boolean))).size}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <div className="text-xs text-gray-500 font-semibold flex items-center justify-between">
-                    <span>Aulas por Série / Ano:</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                    {['6º Ano', '7º Ano', '8º Ano', '9º Ano', '1ª Série', '2ª Série', '3ª Série'].map((ano) => (
-                      <div key={ano} className="bg-gray-50 rounded p-2 border border-gray-100">
-                        <div className="font-bold text-gray-800">
-                          {items.filter((i) => i.ano === ano).length}
-                        </div>
-                        <div className="text-gray-400 text-[9px] font-medium leading-none mt-1">{ano}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Bento Block 3: Export Actions */}
-              <div className="bg-white rounded border border-gray-200 p-6 shadow-sm space-y-4">
-                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider">
-                  Exportar e Formatar
-                </h3>
-
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Gere e baixe a planilha formatada com <strong>filtros automáticos</strong> e <strong>cabeçalhos em negrito</strong>. Escolha o formato de saída:
-                </p>
-
-                <div className="space-y-3 pt-2">
-                  {/* Local Excel Export */}
-                  <button
-                    onClick={handleExportLocalExcel}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-sm font-bold text-white rounded shadow-sm transition hover:scale-[1.01] cursor-pointer"
-                  >
-                    <Download className="h-4 w-4" />
-                    Baixar Planilha de Currículo (.xlsx)
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 mt-2 text-[11px] text-gray-400 text-center">
-                  Os dados do seu currículo são armazenados localmente e exportados de forma segura e imediata em formato Excel.
-                </div>
-
-                {/* Status and messages */}
-                <AnimatePresence>
-                  {createdSheetUrl && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="bg-emerald-50 border border-emerald-100 p-4 rounded space-y-2.5 text-xs text-emerald-800"
-                    >
-                      <div className="font-bold flex items-center gap-1.5">
-                        <Check className="h-4 w-4 text-emerald-600" />
-                        Planilha criada com sucesso!
-                      </div>
-                      <p className="text-emerald-700 leading-normal">
-                        A planilha formatada foi gerada no seu Google Drive com filtros de busca e cabeçalhos em negrito.
-                      </p>
-                      <a
-                        href={createdSheetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-xs"
-                      >
-                        Abrir no Google Planilhas ↗
-                      </a>
-                    </motion.div>
-                  )}
-
-                  {exportError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="bg-red-50 border border-red-100 p-4 rounded flex gap-2 text-xs text-red-700 leading-relaxed"
-                    >
-                      <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5 text-red-500" />
-                      <span>{exportError}</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Bento Block 4: Utilities */}
-              <div className="bg-white rounded border border-gray-200 p-6 shadow-sm flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-gray-800 text-sm">Opções de Dados</h4>
-                  <p className="text-xs text-gray-400 mt-0.5">Deseja reiniciar a tabela?</p>
-                </div>
-                <button
-                  onClick={handleResetData}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-500 hover:text-red-600 hover:bg-red-50 rounded border border-gray-200 hover:border-red-100 transition cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Redefinir tudo
-                </button>
-              </div>
-
-            </div>
-
-            {/* Table Column Right: Full Interactive Table Grid */}
-            <div className="lg:col-span-2">
-              <CurriculumTable 
-                items={items} 
-                onDeleteItem={handleDeleteItem} 
-                onFilteredItemsChange={handleFilteredItemsChange}
-              />
-            </div>
-
-          </div>
-        )}
-
-        {activeTab === 'plan-generator' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
             
             {/* Filter and Lesson List Sidebar: Col span 4 */}
             <div className="lg:col-span-4 space-y-6 text-left">
@@ -4464,9 +4417,6 @@ ${tablesCleanHtml}
                             onChange={(e) => setPlanBimester(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 bg-white rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                           >
-                            <option value="1º Bimestre">1º Bimestre</option>
-                            <option value="2º Bimestre">2º Bimestre</option>
-                            <option value="3º Bimestre">3º Bimestre</option>
                             <option value="4º Bimestre">4º Bimestre</option>
                           </select>
                         ) : (
@@ -4530,21 +4480,50 @@ ${tablesCleanHtml}
                   </div>
 
                   {planBimester === '4º Bimestre' && (
-                    <div className="bg-amber-50/80 p-3 rounded border border-amber-200 space-y-1.5 animate-fadeIn">
-                      <label className="block text-amber-900 font-bold text-xs flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-amber-600" />
-                        Data / Período da Aplicação do SARESP (4º Bimestre)
-                      </label>
-                      <input
-                        type="text"
-                        value={sarespDate}
-                        onChange={(e) => setSarespDate(e.target.value)}
-                        placeholder="Ex: 25/11/2026 e 26/11/2026"
-                        className="w-full px-2.5 py-1.5 border border-amber-300 rounded bg-white text-xs font-medium text-gray-800 focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                      />
-                      <p className="text-[10px] text-amber-700 leading-tight">
-                        Esta data será automaticamente inserida na semana correspondente do plano do 4º bimestre.
-                      </p>
+                    <div className="bg-amber-50/90 dark:bg-amber-950/40 p-3.5 rounded-lg border border-amber-200 dark:border-amber-800 space-y-2.5 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-amber-900 dark:text-amber-200 font-bold text-xs flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          Avaliações Externas do 4º Bimestre (SEDUC 2026)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCalendarDetails(!showCalendarDetails)}
+                          className="text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          {showCalendarDetails ? 'Ocultar Calendário ▲' : 'Ver Calendário Completo ▼'}
+                        </button>
+                      </div>
+
+                      {showCalendarDetails && (
+                        <div className="p-3 bg-white dark:bg-slate-900 rounded border border-amber-300 dark:border-amber-700 text-[11px] text-amber-950 dark:text-amber-100 space-y-1.5 animate-fadeIn">
+                          <div className="font-bold text-amber-900 dark:text-amber-200">Cronograma Completo SEDUC 2026:</div>
+                          <p>&bull; <strong>Provão Paulista:</strong> 3ª EM (04 e 05/11), 2ª EM (10 e 11/11), 1ª EM (12 e 13/11).</p>
+                          <p>&bull; <strong>SARESP 2026:</strong> 9º EF (29 e 30/10), 6º EF (18 e 19/11), 7º EF (26 e 27/11), 8º EF (30/11 e 01/12).</p>
+                          <p>&bull; <strong>Reposição SARESP:</strong> 02 e 03/12/2026.</p>
+                          <p>&bull; <strong>Recuperação Semestral:</strong> 07, 08 e 09/12/2026.</p>
+                          <p>&bull; <strong>Conselho de Classe Final:</strong> 18/12/2026.</p>
+                        </div>
+                      )}
+
+                      {/* Series-Specific Reminders */}
+                      <div className="p-2 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 text-[11px] text-amber-900 dark:text-amber-100 space-y-1">
+                        <p><strong>💻 Provão Paulista:</strong> 3ª EM (04-05/11), 2ª EM (10-11/11), 1ª EM (12-13/11) &mdash; <em>Aulas remotas</em>.</p>
+                        <p><strong>📝 SARESP 2026:</strong> 9º EF (29-30/10), 6º EF (19/11), 7º EF (26-27/11), 8º EF (30/11-01/12), Reposição (02-03/12).</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                          Data do SARESP desta Série no Plano de Aula:
+                        </label>
+                        <input
+                          type="text"
+                          value={sarespDate}
+                          onChange={(e) => setSarespDate(e.target.value)}
+                          placeholder="Ex: 18 e 19/11/2026 (6º ano) ou 23 e 24/11/2026 (9º ano)"
+                          className="w-full px-2.5 py-1.5 border border-amber-300 dark:border-amber-700 rounded bg-white dark:bg-slate-900 text-xs font-medium text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -4571,7 +4550,7 @@ ${tablesCleanHtml}
 
                     {/* Accordions list */}
                     <div className="space-y-2 max-h-[550px] overflow-y-auto pr-1">
-                      {Array.from({ length: 10 }).map((_, weekIdx) => {
+                      {Array.from({ length: planBimester === '4º Bimestre' ? 11 : 10 }).map((_, weekIdx) => {
                         const isOpened = openCustomWeekIdx === weekIdx;
                         const alloc = weeklyCustomAllocations[weekIdx] || { lessonKeys: [], projectDates: '', projectDescription: '' };
                         const assignedCount = alloc.lessonKeys.length;
@@ -4840,111 +4819,23 @@ ${tablesCleanHtml}
                   </div>
                 </div>
               ) : generatedDocHtml ? (
-                <div className="space-y-4 flex flex-col flex-1">
-                  {/* Action Bar */}
-                  <div className="bg-white rounded border border-gray-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                        <Monitor className="h-4 w-4 text-emerald-600" />
-                        <span>Documento de Impressão Oficial (A4)</span>
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setShowMarginModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer border border-slate-300"
-                        title="Configurar Margens A4 (cm)"
-                      >
-                        <Sliders className="h-3.5 w-3.5 text-slate-600" />
-                        Margens A4 ({marginSettings.top} × {marginSettings.left} cm)
-                      </button>
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition cursor-pointer"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Copiar Texto
-                      </button>
-                      <button
-                        onClick={handleDownloadDoc}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition cursor-pointer"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        Baixar Word (.doc)
-                      </button>
-                      <button
-                        onClick={handleDownloadHtml}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition cursor-pointer"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Baixar HTML
-                      </button>
-                      <button
-                        onClick={handlePrintPdf}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                      >
-                        <Printer className="h-3.5 w-3.5" />
-                        Imprimir / PDF
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Rendering Stage: Direct Official A4 Document View */}
-                  <div className="bg-gray-100/60 rounded border border-gray-200 p-6 overflow-y-auto flex-1 flex justify-center max-h-[800px] shadow-inner">
-                    <div 
-                      className="bg-white border shadow-md w-full max-w-[29.7cm] box-border overflow-x-auto min-h-[21cm] text-left"
-                      style={{
-                        paddingTop: `${marginSettings.top}cm`,
-                        paddingBottom: `${marginSettings.bottom}cm`,
-                        paddingLeft: `${marginSettings.left}cm`,
-                        paddingRight: `${marginSettings.right}cm`,
-                        fontFamily: "Cambria, 'Cambria Math', Georgia, serif"
-                      }}
-                    >
-                      <style>{`
-                        ${planFormat === 'ava-efape' ? `
-                          #output-document { font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; color: black; line-height: 1.35; }
-                          #output-document p, #output-document td, #output-document li, #output-document span { font-size: 11pt !important; font-weight: normal; margin-top: 0; margin-bottom: 6pt; text-align: justify; line-height: 1.35; }
-                          #output-document strong, #output-document b, #output-document th, #output-document h1, #output-document h2, #output-document h3 { font-size: 12pt !important; font-weight: bold; }
-                          #output-document ul { margin-top: 0; margin-bottom: 0; padding-left: 15pt; }
-                          #output-document li { margin-bottom: 3pt; text-align: justify; line-height: 1.35; }
-                          #output-document table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.35; }
-                          #output-document td { padding: 6pt; vertical-align: top; word-wrap: break-word; text-align: justify; font-family: Cambria, 'Cambria Math', Georgia, serif; }
-                          #output-document .weekly-plan-page { border: none !important; box-shadow: none !important; margin-bottom: 0 !important; padding: 0 !important; background: transparent !important; }
-                        ` : `
-                          #output-document { font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; color: black; }
-                          #output-document p, #output-document td, #output-document li, #output-document span { font-size: 11pt !important; font-weight: normal; margin-top: 0; margin-bottom: 6pt; text-align: justify; line-height: 1.2; }
-                          #output-document strong, #output-document b, #output-document th, #output-document h1, #output-document h2, #output-document h3 { font-size: 12pt !important; font-weight: bold; }
-                          #output-document ul { margin-top: 0; margin-bottom: 0; padding-left: 15pt; }
-                          #output-document li { margin-bottom: 3pt; text-align: justify; line-height: 1.2; }
-                          #output-document table { table-layout: fixed; border-collapse: collapse; width: 100%; margin-bottom: 12pt; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; }
-                          #output-document td { border: 1pt solid black; padding: 5pt; word-wrap: break-word; text-align: justify; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; }
-                        `}
-                      `}</style>
-                      <div 
-                        id="output-document" 
-                        dangerouslySetInnerHTML={{ __html: generatedDocHtml }} 
-                        onClick={(e) => {
-                          const target = e.target as HTMLElement;
-                          const trigger = target.closest('.gemini-prompt-trigger');
-                          if (trigger) {
-                            e.preventDefault();
-                            const weekIdxAttr = trigger.getAttribute('data-week-idx');
-                            if (weekIdxAttr !== null) {
-                              const weekIdx = parseInt(weekIdxAttr);
-                              const week = generatedWeeks[weekIdx];
-                              if (week) {
-                                const verificadora = week.lessons?.find((l: any) => l.num === 999);
-                                handleOpenGeminiPrompt(verificadora || { previousLessons: week.lessons || [] });
-                              }
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <DocumentFrame
+                  htmlContent={generatedDocHtml}
+                  marginSettings={marginSettings}
+                  planFormat={planFormat}
+                  onOpenMargins={() => setShowMarginModal(true)}
+                  onCopy={handleCopy}
+                  onDownloadDoc={handleDownloadDoc}
+                  onDownloadHtml={handleDownloadHtml}
+                  onPrintPdf={handlePrintPdf}
+                  onWeekTriggerClick={(weekIdx) => {
+                    const week = generatedWeeks[weekIdx];
+                    if (week) {
+                      const verificadora = week.lessons?.find((l: any) => l.num === 999);
+                      handleOpenGeminiPrompt(verificadora || { previousLessons: week.lessons || [] });
+                    }
+                  }}
+                />
               ) : (
                 <div className="bg-white rounded border border-gray-200 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4">
                   <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
@@ -4971,365 +4862,6 @@ ${tablesCleanHtml}
             </div>
 
           </div>
-        )}
-
-        {/* Recovery Plan Generator Section */}
-        {activeTab === 'recovery-plan' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Header / Banner */}
-            <div className="bg-[#152e72] rounded-2xl p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border-l-4 border-amber-500">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="bg-amber-500/20 backdrop-blur-md text-amber-200 text-[10px] uppercase tracking-widest font-extrabold px-3 py-1 rounded-full border border-amber-400/25">
-                    Resolução SEDUC 42/2024
-                  </span>
-                  <span className="bg-white/10 backdrop-blur-md text-slate-100 text-[10px] uppercase tracking-widest font-extrabold px-3 py-1 rounded-full border border-white/15">
-                    Ensino Regular & Itinerários
-                  </span>
-                </div>
-                <h2 className="text-3xl font-extrabold tracking-tight font-sans text-white">
-                  Gerador de Planos de Recuperação Semestral
-                </h2>
-                <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
-                  Crie planos de recomposição de aprendizagem contínuas e semestrais em estrito alinhamento ao Currículo Paulista 2026, com foco na Prova Paulista, plataformas oficiais de aprendizagem (Matific, Start by Alura) e cronograma letivo estadual.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl border border-white/10 self-start md:self-auto shrink-0 backdrop-blur-sm">
-                <Award className="h-10 w-10 text-amber-300 animate-pulse" />
-                <div className="text-xs">
-                  <div className="font-bold text-amber-200">1º Semestre Letivo</div>
-                  <div className="text-white/70">Ano Letivo de 2026</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Form Column */}
-              <div className="lg:col-span-5 space-y-6">
-                {/* Information Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
-                  <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                    <Info className="h-4 w-4 text-amber-600" />
-                    Orientações Administrativas Letivas
-                  </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    A recuperação semestral deve abranger o agrupamento produtivo dos estudantes com notas insatisfatórias (&lt; 5,0) por meio de <strong>metodologias ativas diferenciadas</strong>, tutoria pedagógica e engajamento contínuo registrado na Secretaria Escolar Digital (SED) e no sistema 'Professor Presente'.
-                  </p>
-                </div>
-
-
-
-                {/* Form Controls */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-5">
-                  <h3 className="font-bold text-gray-800 text-sm border-b pb-2">
-                    Configuração de Parâmetros
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Unidade Escolar</label>
-                      <input
-                        type="text"
-                        value={schoolName}
-                        onChange={(e) => setSchoolName(e.target.value)}
-                        placeholder="Ex: E.E. Dr. Alarico Silveira"
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Docente Responsável</label>
-                      <input
-                        type="text"
-                        value={docenteName}
-                        onChange={(e) => setDocenteName(e.target.value)}
-                        placeholder="Ex: Profª Ana Carolina Silva"
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Componente Curricular</label>
-                      <select
-                        value={recComponente}
-                        onChange={(e) => setRecComponente(e.target.value)}
-                        className="w-full text-xs px-2.5 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-white"
-                      >
-                        {Object.keys(OFFICIAL_RECOVERY_DATA_2026).map(comp => (
-                          <option key={comp} value={comp}>{comp}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Série / Ano</label>
-                      <select
-                        value={recAno}
-                        onChange={(e) => setRecAno(e.target.value)}
-                        className="w-full text-xs px-2.5 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-white"
-                      >
-                        {OFFICIAL_RECOVERY_DATA_2026[recComponente] ? (
-                          Object.keys(OFFICIAL_RECOVERY_DATA_2026[recComponente]).map(grade => (
-                            <option key={grade} value={grade}>{grade}</option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="6º Ano">6º Ano (EF)</option>
-                            <option value="7º Ano">7º Ano (EF)</option>
-                            <option value="8º Ano">8º Ano (EF)</option>
-                            <option value="9º Ano">9º Ano (EF)</option>
-                            <option value="1ª Série">1ª Série (EM)</option>
-                            <option value="2ª Série">2ª Série (EM)</option>
-                            <option value="3ª Série">3ª Série (EM)</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Período Alvo</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value="1º Semestre (1º e 2º Bimestres)"
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-200 bg-gray-50 text-gray-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Aulas Homologadas</label>
-                      <select
-                        value={recAulas}
-                        onChange={(e) => setRecAulas(Number(e.target.value))}
-                        className="w-full text-xs px-2.5 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-white"
-                      >
-                        <option value={4}>4 Aulas</option>
-                        <option value={6}>6 Aulas</option>
-                        <option value={8}>8 Aulas</option>
-                        <option value={10}>10 Aulas</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 pt-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Aprendizagem Essencial em Foco</label>
-                      <textarea
-                        rows={3}
-                        value={recAprendizagemEssencial}
-                        onChange={(e) => setRecAprendizagemEssencial(e.target.value)}
-                        placeholder="Ex: EF07TE02 - Identificar o funcionamento de arquivos compactados e descrever vantagens..."
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Descritor de Habilidade em Defasagem</label>
-                      <textarea
-                        rows={2}
-                        value={recDescritores}
-                        onChange={(e) => setRecDescritores(e.target.value)}
-                        placeholder="Ex: Arquivos digitais compactados, formatos .zip e compressão de dados..."
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-
-                    {/* Adaptação Curricular */}
-                    <div className="space-y-2 pt-2 border-t border-gray-100">
-                      <label className="text-xs font-bold text-gray-700 block uppercase">Estratégias de Adaptação Curricular</label>
-                      <div className="space-y-2 bg-amber-50/50 p-3 rounded-lg border border-amber-100">
-                        {[
-                          "Responder dúvidas recorrentes, retomando explicações",
-                          "Oferecer exemplos adicionais ou utilizar outra estratégia de explicação para o mesmo conceito",
-                          "Propor atividades de apoio para estudantes que ainda não consolidaram a aprendizagem",
-                          "Disponibilizar desafios para estudantes que já dominaram o conteúdo"
-                        ].map((opt) => {
-                          const checked = recAdaptacoes.includes(opt);
-                          return (
-                            <label key={opt} className="flex items-start gap-2.5 text-xs text-gray-700 font-medium cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setRecAdaptacoes([...recAdaptacoes, opt]);
-                                  } else {
-                                    setRecAdaptacoes(recAdaptacoes.filter(o => o !== opt));
-                                  }
-                                }}
-                                className="mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                              />
-                              <span className="leading-snug">{opt}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Sugestão de Materiais */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Sugestão de Materiais para Adaptação</label>
-                      <textarea
-                        rows={2}
-                        value={recMateriais}
-                        onChange={(e) => setRecMateriais(e.target.value)}
-                        placeholder="Ex: Jogos pedagógicos, fichas impressas com apoio visual, esquemas gráficos..."
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-
-                    {/* Previsão de Retomada de Aprendizagens Anteriores */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-600 block uppercase">Previsão de Retomada de Aprendizagens Anteriores</label>
-                      <textarea
-                        rows={2}
-                        value={recRetomadaAnterior}
-                        onChange={(e) => setRecRetomadaAnterior(e.target.value)}
-                        placeholder="Ex: Revisão prática dos conceitos fundamentais dos bimestres anteriores do 1º Semestre..."
-                        className="w-full text-xs px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleGenerateRecoveryPlanAction}
-                    disabled={isGeneratingRecoveryPlan}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs tracking-wider uppercase transition shadow disabled:opacity-55 cursor-pointer"
-                  >
-                    {isGeneratingRecoveryPlan ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Estruturando Recuperação...
-                      </>
-                    ) : (
-                      <>
-                        <Award className="h-4 w-4" />
-                        Gerar Plano de Recuperação Oficial
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Preview Column */}
-              <div className="lg:col-span-7 flex flex-col h-full min-h-[600px]">
-                {isGeneratingRecoveryPlan ? (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex-1 flex flex-col items-center justify-center text-center gap-6 animate-pulse">
-                    <Loader2 className="h-10 w-10 text-amber-600 animate-spin" />
-                    <div className="space-y-2">
-                      <h4 className="font-bold text-gray-800 text-base">Processando Restrições Sintáticas Letivas</h4>
-                      <p className="text-xs text-gray-400 max-w-sm leading-relaxed">
-                        Mapeando os níveis cognitivos da Bloom, estruturando scaffolding para o Currículo Paulista 2026 e construindo frentes para grupos da Prova Paulista.
-                      </p>
-                    </div>
-                  </div>
-                ) : generatedRecoveryPlan ? (
-                  <div className="space-y-4 flex-1 flex flex-col">
-                    {/* Exporters and Toolbar */}
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wide">
-                        <Check className="h-4 w-4 text-emerald-600" />
-                        Plano Compilado Letivo (Pronto)
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setShowMarginModal(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer border border-slate-300"
-                          title="Configurar Margens A4 (cm)"
-                        >
-                          <Sliders className="h-3.5 w-3.5 text-slate-600" />
-                          Margens A4 ({marginSettings.top} × {marginSettings.left} cm)
-                        </button>
-                        <button
-                          onClick={handleCopyRecovery}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition cursor-pointer"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          Copiar Texto
-                        </button>
-                        <button
-                          onClick={handleDownloadRecoveryDoc}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition cursor-pointer"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          Baixar Word (.doc)
-                        </button>
-                        <button
-                          onClick={handleDownloadRecoveryHtml}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition cursor-pointer"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Exportar HTML
-                        </button>
-                        <button
-                          onClick={handlePrintRecoveryPdf}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition cursor-pointer"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          Imprimir / PDF
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Standard A4 Styled Box */}
-                    <div className="flex-1 bg-gray-100 rounded-xl border border-gray-300 p-6 md:p-10 shadow-inner overflow-y-auto max-h-[800px] flex justify-center">
-                      <div 
-                        className="bg-white w-full max-w-[29.7cm] border border-gray-300 shadow-lg relative min-h-[21cm] text-black"
-                        style={{
-                          paddingTop: `${marginSettings.top}cm`,
-                          paddingBottom: `${marginSettings.bottom}cm`,
-                          paddingLeft: `${marginSettings.left}cm`,
-                          paddingRight: `${marginSettings.right}cm`,
-                          fontFamily: "Cambria, 'Cambria Math', Georgia, serif"
-                        }}
-                      >
-                        {/* Custom print styling scope */}
-                        <style>{`
-                          #recovery-document { font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; }
-                          #recovery-document p, #recovery-document td, #recovery-document li, #recovery-document span { font-size: 11pt !important; font-weight: normal; }
-                          #recovery-document strong, #recovery-document b, #recovery-document th, #recovery-document h1, #recovery-document h2 { font-size: 12pt !important; font-weight: bold; }
-                          #recovery-document table { border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 15px; border: 1px solid black; }
-                          #recovery-document th, #recovery-document td { border: 1px solid black; padding: 6px; vertical-align: top; text-align: left; }
-                        `}</style>
-                        <div 
-                          id="recovery-document" 
-                          dangerouslySetInnerHTML={{ 
-                            __html: buildRecoveryPlanHTML(schoolName, docenteName, generatedRecoveryPlan, {
-                              componente: recComponente,
-                              ano: recAno,
-                              bimestre: recBimestre,
-                              aprendizagemEssencial: recAprendizagemEssencial,
-                              descritores: recDescritores,
-                              aulas: recAulas,
-                              adaptacaoCurricularOptions: recAdaptacoes,
-                              sugestaoMateriais: recMateriais,
-                              retomadaAprendizagensAnteriores: recRetomadaAnterior
-                            }) 
-                          }} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4">
-                    <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
-                      <Award className="h-8 w-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-gray-800 text-sm">Plano de Recuperação Semestral</h4>
-                      <p className="text-xs text-gray-400 max-w-sm leading-relaxed mx-auto">
-                        Selecione um dos modelos de precisão à esquerda ou preencha os parâmetros e clique em <strong>Gerar Plano de Recuperação Oficial</strong>.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        {activeTab === 'repositories' && (
-          <QuestionRepositories />
-        )}
 
       {/* Footer */}
       <footer className="w-full bg-white border-t border-gray-200 mt-16 py-8">

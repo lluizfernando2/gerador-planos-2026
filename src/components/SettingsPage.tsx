@@ -138,7 +138,7 @@ export default function SettingsPage({
           <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Informações do Sistema
+              Informações do Sistema & Exportação
             </h3>
             
             <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
@@ -158,6 +158,19 @@ export default function SettingsPage({
                 <span className="text-slate-400">Ambiente</span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">Produção Ativa (SSL)</span>
               </div>
+            </div>
+
+            <div className="pt-2">
+              <a
+                href="/codigo_completo_app.pdf"
+                download="codigo_completo_app.pdf"
+                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs cursor-pointer text-center"
+              >
+                📄 Baixar Código Completo do App (PDF)
+              </a>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 text-center">
+                Exportação completa de todos os módulos e componentes para análise externa.
+              </p>
             </div>
           </div>
 

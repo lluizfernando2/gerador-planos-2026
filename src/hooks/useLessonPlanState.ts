@@ -7,7 +7,7 @@ export function useLessonPlanState(showToast: (msg: string, isError?: boolean) =
   const [selectedSegment, setSelectedSegment] = useState<'Ensino Fundamental' | 'Ensino Médio'>('Ensino Fundamental');
   const [planSubject, setPlanSubject] = useState('Matemática');
   const [planGrade, setPlanGrade] = useState('6º Ano');
-  const [planBimester, setPlanBimester] = useState('3º Bimestre');
+  const [planBimester, setPlanBimester] = useState('4º Bimestre');
   
   // Selected lesson keys for Plan Generator
   const [selectedPlanLessons, setSelectedPlanLessons] = useState<Set<string>>(new Set());

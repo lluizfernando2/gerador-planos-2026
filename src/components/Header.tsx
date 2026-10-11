@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Menu, X, Heart, HelpCircle, BookOpen, Layers, Home, Sparkles } from 'lucide-react';
+import { GraduationCap, Menu, X, Heart, HelpCircle, BookOpen, Layers, Home, Sparkles, Calendar, Clock } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
-  activeTab: 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'help';
-  onSelectTab: (tab: 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'help') => void;
+  activeTab: 'curriculum' | 'plan-generator' | 'favorites' | 'help' | 'dashboard' | 'settings';
+  onSelectTab: (tab: any) => void;
   favoritesCount: number;
   onOpenGuide?: () => void;
 }
@@ -50,14 +50,14 @@ export default function Header({
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleNavClick('curriculum')}
-              className="flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-xl p-1 cursor-pointer group"
+              className="flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded-xl p-1 cursor-pointer group"
               aria-label="Ir para a página inicial do Currículo Priorizado"
             >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-6 h-6" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+                <GraduationCap className="w-5 h-5 text-emerald-400 dark:text-white" aria-hidden="true" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white block leading-tight">
+                <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white block leading-tight">
                   Currículo Priorizado
                 </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
@@ -68,25 +68,25 @@ export default function Header({
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2" aria-label="Navegação principal">
+          <nav className="hidden md:flex items-center gap-1.5" aria-label="Navegação principal">
             <button
               onClick={() => handleNavClick('curriculum')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'curriculum'
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+              <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               <span>Currículo</span>
             </button>
 
             <button
               onClick={() => handleNavClick('plan-generator')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'plan-generator'
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
               }`}
             >
               <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
@@ -95,16 +95,16 @@ export default function Header({
 
             <button
               onClick={() => handleNavClick('favorites')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer relative ${
                 activeTab === 'favorites'
-                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
               }`}
             >
               <Heart className="w-4 h-4 text-rose-500" aria-hidden="true" />
               <span>Favoritos</span>
               {favoritesCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs font-bold bg-rose-500 text-white rounded-full">
+                <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold bg-rose-500 text-white rounded-full">
                   {favoritesCount}
                 </span>
               )}
@@ -112,13 +112,13 @@ export default function Header({
 
             <button
               onClick={() => handleNavClick('help')}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'help'
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
               }`}
             >
-              <HelpCircle className="w-4 h-4 text-amber-500" aria-hidden="true" />
+              <HelpCircle className="w-4 h-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
               <span>Ajuda</span>
             </button>
           </nav>

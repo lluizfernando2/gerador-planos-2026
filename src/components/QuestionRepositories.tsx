@@ -1,278 +1,412 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  QUESTION_REPOSITORIES, 
-  QuestionRepository 
-} from '../data/questionRepositories';
-import { 
+  BookOpen, 
   Search, 
   ExternalLink, 
   Copy, 
   Check, 
-  ChevronDown, 
-  ChevronUp, 
-  BookOpen, 
-  Award, 
+  Tag, 
+  Building2, 
+  Layers, 
+  Sparkles, 
   Globe, 
-  Filter,
-  GraduationCap
+  Filter, 
+  Award, 
+  GraduationCap, 
+  FileText, 
+  CheckCircle2, 
+  HelpCircle,
+  FolderArchive
 } from 'lucide-react';
+import { QUESTION_REPOSITORIES, QuestionRepository } from '../data/questionRepositories';
+
+type CategoryFilter = 'all' | 'oficial' | 'olimpiada' | 'plataforma' | 'humanas_linguagens';
+
+const CATEGORIES: { id: CategoryFilter; label: string; icon: React.ElementType; countKey?: string }[] = [
+  { id: 'all', label: 'Todos os Repositórios', icon: FolderArchive },
+  { id: 'oficial', label: 'Órgãos Oficiais & Vestibulares', icon: GraduationCap },
+  { id: 'olimpiada', label: 'Olimpíadas do Conhecimento', icon: Award },
+  { id: 'plataforma', label: 'Bancos de Questões & Plataformas', icon: Globe },
+  { id: 'humanas_linguagens', label: 'Humanas, Linguagens & Blogs', icon: BookOpen }
+];
 
 export default function QuestionRepositories() {
-  const [isOpen, setIsOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('todos');
-  const [activeSubject, setActiveSubject] = useState<string>('todos');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [selectedTag, setSelectedTag] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const categories = [
-    { id: 'todos', label: 'Todos os Repositórios' },
-    { id: 'oficial', label: 'Avaliações Oficiais' },
-    { id: 'olimpiada', label: 'Olimpíadas Científicas' },
-    { id: 'plataforma', label: 'Plataformas de Exercícios' },
-    { id: 'humanas_linguagens', label: 'Linguagens & Humanas' }
-  ];
+  // Extract all unique subjects
+  const allSubjects = useMemo(() => {
+    const set = new Set<string>();
+    QUESTION_REPOSITORIES.forEach((repo) => {
+      repo.subjects.forEach((s) => set.add(s));
+    });
+    return Array.from(set).sort();
+  }, []);
 
-  const subjects = [
-    { id: 'todos', label: 'Todas as Áreas' },
-    { id: 'Matemática', label: 'Matemática' },
-    { id: 'Ciências', label: 'Ciências / Física / Química' },
-    { id: 'Linguagens', label: 'Linguagens / Redação' },
-    { id: 'Geografia', label: 'Geografia / História / Humanas' }
-  ];
+  // Extract all unique popular tags
+  const popularTags = useMemo(() => {
+    const tagCount: Record<string, number> = {};
+    QUESTION_REPOSITORIES.forEach((repo) => {
+      repo.tags.forEach((t) => {
+        tagCount[t] = (tagCount[t] || 0) + 1;
+      });
+    });
+    return Object.entries(tagCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([tag]) => tag);
+  }, []);
 
-  const handleCopyLink = (url: string, id: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: QUESTION_REPOSITORIES.length };
+    QUESTION_REPOSITORIES.forEach((repo) => {
+      counts[repo.category] = (counts[repo.category] || 0) + 1;
+    });
+    return counts;
+  }, []);
+
+  // Filtered repositories
+  const filteredRepositories = useMemo(() => {
+    return QUESTION_REPOSITORIES.filter((repo) => {
+      // Category filter
+      if (selectedCategory !== 'all' && repo.category !== selectedCategory) {
+        return false;
+      }
+
+      // Subject filter
+      if (selectedSubject !== 'all' && !repo.subjects.includes(selectedSubject)) {
+        return false;
+      }
+
+      // Tag filter
+      if (selectedTag !== 'all' && !repo.tags.includes(selectedTag)) {
+        return false;
+      }
+
+      // Search term
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase();
+        const matchesName = repo.name.toLowerCase().includes(query);
+        const matchesOrg = repo.organization.toLowerCase().includes(query);
+        const matchesDesc = repo.description.toLowerCase().includes(query);
+        const matchesTags = repo.tags.some((t) => t.toLowerCase().includes(query));
+        const matchesSubjects = repo.subjects.some((s) => s.toLowerCase().includes(query));
+
+        if (!matchesName && !matchesOrg && !matchesDesc && !matchesTags && !matchesSubjects) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [selectedCategory, selectedSubject, selectedTag, searchTerm]);
+
+  const handleCopyLink = (repo: QuestionRepository) => {
+    navigator.clipboard.writeText(repo.url);
+    setCopiedId(repo.id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
   };
 
-  // Filter logic
-  const filteredRepositories = QUESTION_REPOSITORIES.filter(repo => {
-    // Search term check
-    const matchesSearch = 
-      repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      repo.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      repo.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      repo.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    // Category check
-    const matchesCategory = activeCategory === 'todos' || repo.category === activeCategory;
-
-    // Subject check
-    let matchesSubject = activeSubject === 'todos';
-    if (!matchesSubject) {
-      if (activeSubject === 'Ciências') {
-        matchesSubject = repo.subjects.some(s => ['Ciências', 'Física', 'Química', 'Biologia'].includes(s));
-      } else if (activeSubject === 'Geografia') {
-        matchesSubject = repo.subjects.some(s => ['Geografia', 'História', 'Sociologia', 'Filosofia', 'Ciências Humanas'].includes(s));
-      } else {
-        matchesSubject = repo.subjects.includes(activeSubject);
-      }
+  const getCategoryBadge = (category: QuestionRepository['category']) => {
+    switch (category) {
+      case 'oficial':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+            <GraduationCap className="w-3.5 h-3.5" /> Oficial / Vestibular
+          </span>
+        );
+      case 'olimpiada':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+            <Award className="w-3.5 h-3.5" /> Olimpíada
+          </span>
+        );
+      case 'plataforma':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            <Globe className="w-3.5 h-3.5" /> Plataforma Digital
+          </span>
+        );
+      case 'humanas_linguagens':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+            <BookOpen className="w-3.5 h-3.5" /> Humanas & Linguagens
+          </span>
+        );
+      default:
+        return null;
     }
-
-    return matchesSearch && matchesCategory && matchesSubject;
-  });
+  };
 
   return (
-    <div id="repositorio-questoes" className="mt-12 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden text-left">
-      {/* Interactive Header to Expand/Collapse */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200 hover:bg-gray-100/70 transition cursor-pointer"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-700 shrink-0">
-            <GraduationCap className="h-5 w-5" />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fade-in" translate="no" lang="pt-BR">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 text-white p-6 sm:p-8 shadow-xl">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative z-10 max-w-3xl space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 backdrop-blur-sm">
+            <Sparkles className="w-3.5 h-3.5" />
+            Acervo Curado &bull; {QUESTION_REPOSITORIES.length} Fontes de Alta Qualidade
           </div>
-          <div>
-            <h3 className="text-base font-bold text-gray-800">
-              Coletânea de Repositórios de Questões (Aprofundamento Pedagógico)
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Links selecionados de portais oficiais, exames de larga escala e olimpíadas científicas — 100% livre de IA e verificado
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+            Repositórios & Bancos de Questões Oficiais
+          </h1>
+          <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed">
+            Acesse diretamente os melhores acervos oficiais do país (INEP, SAEB, FUVEST, UNICAMP, OBMEP, VUNESP, Bibliotecas e Portais Acadêmicos) para enriquecer suas avaliações, simulados e planos de aula.
+          </p>
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+        {CATEGORIES.map((cat) => {
+          const Icon = cat.icon;
+          const isActive = selectedCategory === cat.id;
+          const count = categoryCounts[cat.id] || 0;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                isActive
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{cat.label}</span>
+              <span
+                className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  isActive
+                    ? 'bg-emerald-700 text-emerald-100'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters & Search Row */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por instituição, disciplina, tema ou palavra-chave (ex: ENEM, OBMEP, História, Gratuito)..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+
+          {/* Subject Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
+            >
+              <option value="all">Todas as Disciplinas / Áreas</option>
+              {allSubjects.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Popular Tags */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-1">
+            <Tag className="w-3.5 h-3.5" /> Tags:
+          </span>
+          <button
+            onClick={() => setSelectedTag('all')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+              selectedTag === 'all'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Todas
+          </button>
+          {popularTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setSelectedTag(selectedTag === tag ? 'all' : tag)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                selectedTag === tag
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Results Header */}
+      <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 px-1">
+        <span>
+          Exibindo <strong className="text-slate-800 dark:text-slate-200">{filteredRepositories.length}</strong> {filteredRepositories.length === 1 ? 'repositório' : 'repositórios'}
+        </span>
+        {(searchTerm || selectedCategory !== 'all' || selectedSubject !== 'all' || selectedTag !== 'all') && (
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedCategory('all');
+              setSelectedSubject('all');
+              setSelectedTag('all');
+            }}
+            className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+          >
+            Resetar todos os filtros
+          </button>
+        )}
+      </div>
+
+      {/* Repositories Grid */}
+      {filteredRepositories.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center space-y-4 max-w-lg mx-auto">
+          <div className="w-14 h-14 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+            <Search className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Nenhum repositório encontrado</h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Não encontramos nenhum banco de questões com os filtros aplicados. Tente buscar por outros termos ou limpar os filtros.
             </p>
           </div>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedCategory('all');
+              setSelectedSubject('all');
+              setSelectedTag('all');
+            }}
+            className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition cursor-pointer"
+          >
+            Ver todos os repositórios
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2 py-1 rounded bg-white border text-gray-500 font-mono">
-            {QUESTION_REPOSITORIES.length} Portais
-          </span>
-          {isOpen ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
-          )}
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className="p-6 space-y-6">
-          {/* Controls Bar: Search, Category Filter, Subject Filter */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Search Input */}
-            <div className="md:col-span-4 relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por palavra-chave, tema ou tag..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white"
-              />
-            </div>
-
-            {/* Subject Filter (Dropdown for density) */}
-            <div className="md:col-span-4 flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-400 whitespace-nowrap">Filtro Área:</span>
-              <select
-                value={activeSubject}
-                onChange={(e) => setActiveSubject(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 bg-white rounded-md text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium text-gray-700"
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRepositories.map((repo) => {
+            const isCopied = copiedId === repo.id;
+            return (
+              <div
+                key={repo.id}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-lg hover:border-emerald-500/50 transition-all duration-200 flex flex-col justify-between overflow-hidden group"
               >
-                {subjects.map(sub => (
-                  <option key={sub.id} value={sub.id}>{sub.label}</option>
-                ))}
-              </select>
-            </div>
+                <div className="p-5 space-y-3.5">
+                  {/* Category & Org */}
+                  <div className="flex items-center justify-between gap-2">
+                    {getCategoryBadge(repo.category)}
+                    <button
+                      onClick={() => handleCopyLink(repo)}
+                      title="Copiar link"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                    >
+                      {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
 
-            {/* Hint message */}
-            <div className="md:col-span-4 flex items-center justify-end text-right text-[11px] text-gray-400 italic">
-              Selecione os portais para extrair itens desafiadores e diversificar provas escolares.
-            </div>
-          </div>
+                  {/* Title */}
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-50 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition leading-snug">
+                    {repo.name}
+                  </h3>
 
-          {/* Category Tabs (Horizontal Pills) */}
-          <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-4">
-            {categories.map(cat => {
-              const isSelected = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer ${
-                    isSelected 
-                      ? 'bg-emerald-600 text-white shadow-xs' 
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
+                  {/* Organization */}
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{repo.organization}</span>
+                  </div>
 
-          {/* Repositories Grid */}
-          {filteredRepositories.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredRepositories.map((repo) => (
-                <div 
-                  key={repo.id}
-                  className="group bg-white rounded-lg border border-gray-200 p-5 flex flex-col justify-between hover:border-emerald-300 hover:shadow-md transition duration-200"
-                >
-                  <div className="space-y-3">
-                    {/* Header: Icon + Category Badge */}
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-100 uppercase tracking-wide">
-                        {repo.category === 'oficial' ? 'Oficial / Avaliação' : 
-                         repo.category === 'olimpiada' ? 'Olimpíada' : 
-                         repo.category === 'plataforma' ? 'Plataforma' : 'Humanas & Ling.'}
-                      </span>
-                      <div className="flex gap-1">
-                        {repo.subjects.slice(0, 2).map(sub => (
-                          <span key={sub} className="text-[9px] font-semibold text-gray-400 bg-gray-50 border px-1.5 py-0.2 rounded-sm">
-                            {sub}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Description */}
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4">
+                    {repo.description}
+                  </p>
 
-                    {/* Title */}
-                    <div>
-                      <h4 className="font-bold text-gray-800 text-sm leading-snug group-hover:text-emerald-700 transition duration-150">
-                        {repo.name}
-                      </h4>
-                      <p className="text-[11px] font-semibold text-gray-400 mt-0.5">
-                        {repo.organization}
-                      </p>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-xs text-gray-500 leading-relaxed text-justify line-clamp-4">
-                      {repo.description}
-                    </p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {repo.tags.map(tag => (
-                        <span key={tag} className="text-[9px] font-semibold text-gray-400 border border-gray-100 bg-gray-50/50 px-2 py-0.5 rounded">
-                          #{tag}
+                  {/* Disciplines / Subjects */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">
+                      Componentes / Áreas
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {repo.subjects.map((sub) => (
+                        <span
+                          key={sub}
+                          className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300"
+                        >
+                          {sub}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  {/* Actions footer */}
-                  <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-100">
-                    <a
-                      href={repo.url}
-                      target="_blank"
-                      referrerPolicy="no-referrer"
-                      rel="noopener noreferrer"
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Acessar Portal
-                    </a>
-                    
-                    <button
-                      onClick={() => handleCopyLink(repo.url, repo.id)}
-                      title="Copiar Link para Área de Transferência"
-                      className="p-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition cursor-pointer"
-                    >
-                      {copiedId === repo.id ? (
-                        <Check className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1">
+                    {repo.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-800"
+                      >
+                        #{t}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center text-gray-400 text-xs flex flex-col items-center justify-center border border-dashed rounded-lg py-16 gap-3">
-              <Globe className="h-8 w-8 text-gray-300" />
-              <div className="space-y-1">
-                <p className="font-bold text-gray-600 text-sm">Nenhum repositório encontrado</p>
-                <p className="text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  Não encontramos links que atendam simultaneamente aos filtros de pesquisa, categoria e disciplina selecionados. Tente limpar seus filtros.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setActiveCategory('todos');
-                  setActiveSubject('todos');
-                }}
-                className="mt-2 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-bold transition cursor-pointer"
-              >
-                Limpar Todos os Filtros
-              </button>
-            </div>
-          )}
 
-          {/* Practical tip footer for teachers */}
-          <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-100/60 flex items-start gap-3 text-xs leading-relaxed text-emerald-800">
-            <BookOpen className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h5 className="font-bold">Dica de Prática Pedagógica (Alinhamento & Aprofundamento):</h5>
-              <p className="text-emerald-700 text-[11px] leading-relaxed">
-                Ao selecionar questões destes repositórios oficiais, priorize focar na <strong>habilidade correspondente (BNCC)</strong> indicada em sua semana de aula. Use os filtros de busca por assunto para encontrar itens correlatos de exames anteriores do ENEM, SARESP ou da OBMEP. Isso ajuda o estudante a se familiarizar com os formatos de exames em larga escala enquanto consolida o aprendizado básico!
-              </p>
-            </div>
-          </div>
+                {/* Footer Action */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700/60 mt-auto">
+                  <a
+                    href={repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition cursor-pointer"
+                  >
+                    <span>Acessar Acervo Oficial</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {/* Pro Tips Footer Box */}
+      <div className="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+        <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          Como utilizar estes repositórios no seu planejamento?
+        </h4>
+        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+          Recomendamos selecionar questões oficiais do INEP (SAEB e ENEM), Provão Paulista e Olimpíadas para alimentar os momentos de <strong>Prática Guiada</strong> e <strong>Checagem Formativa</strong> dos seus Planos de Aula. Questões com gabarito e comentários auxiliam na identificação rápida de distratores e concepções alternativas dos estudantes.
+        </p>
+      </div>
     </div>
   );
 }

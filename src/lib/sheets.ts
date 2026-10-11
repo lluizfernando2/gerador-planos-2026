@@ -1,288 +1,125 @@
-import { CurriculumItem } from '../types';
-
-export interface CreateSheetResponse {
-  spreadsheetId: string;
-  spreadsheetUrl: string;
-}
+import { getGoogleAccessToken } from './firebase';
 
 /**
- * Creates a formatted Google Sheet in the user's Google Drive containing curriculum data
+ * Exports data directly to Google Sheets via Google Sheets API v4.
+ * Creates a new spreadsheet in the user's Google Drive and writes the tabular data.
+ *
+ * Supports flexible parameter signatures:
+ * - exportToGoogleSheets(title, values, token?)
+ * - exportToGoogleSheets(token, title, values)
  */
 export async function exportToGoogleSheets(
-  accessToken: string,
-  items: CurriculumItem[],
-  title: string = 'Currículo Priorizado - Matemática'
-): Promise<CreateSheetResponse> {
-  // 1. Create a brand new Google Spreadsheet
+  titleOrToken: string,
+  dataOrTitle: any[][] | string,
+  tokenOrData?: string | any[][]
+): Promise<string> {
+  let token: string = '';
+  let title: string = '';
+  let values: any[][] = [];
+
+  if (typeof titleOrToken === 'string' && Array.isArray(dataOrTitle)) {
+    title = titleOrToken;
+    values = dataOrTitle;
+    token = (typeof tokenOrData === 'string' ? tokenOrData : '') || getGoogleAccessToken() || '';
+  } else if (typeof titleOrToken === 'string' && typeof dataOrTitle === 'string' && Array.isArray(tokenOrData)) {
+    token = titleOrToken;
+    title = dataOrTitle;
+    values = tokenOrData;
+  } else {
+    title = 'Planejamento Curricular SP 2026';
+    values = Array.isArray(dataOrTitle) ? dataOrTitle : (Array.isArray(tokenOrData) ? tokenOrData : []);
+    token = getGoogleAccessToken() || '';
+  }
+
+  if (!token) {
+    throw new Error('Token OAuth do Google ausente. Por favor, conecte-se com sua conta Google para autorizar o acesso ao Google Sheets.');
+  }
+
+  // 1. Create a new Spreadsheet in the user's Google Drive
   const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       properties: {
-        title: title,
-      },
-    }),
+        title: title || 'Planejamento Curricular SP 2026'
+      }
+    })
   });
 
   if (!createResponse.ok) {
-    const errText = await createResponse.text();
-    throw new Error(`Erro ao criar planilha: ${errText}`);
+    throw await formatGoogleApiError(createResponse);
   }
 
-  const spreadsheet: any = await createResponse.json();
-  const spreadsheetId = spreadsheet.spreadsheetId;
-  const spreadsheetUrl = spreadsheet.spreadsheetUrl;
+  const sheetData = await createResponse.json();
+  const spreadsheetId = sheetData.spreadsheetId;
+  const spreadsheetUrl = sheetData.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 
-  const defaultSheet = spreadsheet.sheets?.[0]?.properties;
-  const sheetId = defaultSheet?.sheetId ?? 0;
-  const sheetName = defaultSheet?.title || 'Sheet1';
+  // 2. Write data values if rows were provided
+  if (values && values.length > 0) {
+    const range = encodeURIComponent('Página1!A1');
+    const writeResponse = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values })
+      }
+    );
 
-  // 2. Prepare the grid data
-  const headers = [
-    'Ano',
-    'Bimestre',
-    'Aula',
-    'Título da Aula',
-    'Conteúdo',
-    'Objetivos de Aprendizagem',
-    'Habilidade',
-    'Aprendizagem Essencial',
-  ];
+    if (!writeResponse.ok) {
+      // Fallback for spreadsheets where default sheet is 'Sheet1'
+      const fallbackRange = encodeURIComponent('Sheet1!A1');
+      const fallbackWrite = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${fallbackRange}?valueInputOption=RAW`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values })
+        }
+      );
 
-  const rows = items.map((item) => [
-    item.ano,
-    item.bimestre,
-    item.aula,
-    item.titulo,
-    item.conteudo,
-    item.objetivos,
-    item.habilidade,
-    item.aprendizagem,
-  ]);
-
-  const allValues = [headers, ...rows];
-
-  // 3. Write data to the first sheet using its actual retrieved name
-  const range = `'${sheetName.replace(/'/g, "''")}'!A1`;
-  const writeResponse = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-    {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        values: allValues,
-      }),
+      if (!fallbackWrite.ok) {
+        throw await formatGoogleApiError(writeResponse);
+      }
     }
-  );
-
-  if (!writeResponse.ok) {
-    const errText = await writeResponse.text();
-    throw new Error(`Erro ao escrever dados na planilha: ${errText}`);
   }
 
-  // 4. Format spreadsheet: Elegant Emerald/Sage Dashboard Theme
-  const totalRows = allValues.length;
-  
-  // Specific column widths to prevent giant stretched columns
-  const columnWidths = [90, 100, 60, 220, 280, 300, 110, 300];
-  const dimensionRequests = columnWidths.map((width, index) => ({
-    updateDimensionProperties: {
-      range: {
-        sheetId: sheetId,
-        dimension: 'COLUMNS',
-        startIndex: index,
-        endIndex: index + 1,
-      },
-      properties: {
-        pixelSize: width,
-      },
-      fields: 'pixelSize',
-    },
-  }));
+  return spreadsheetUrl;
+}
 
-  const batchResponse = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requests: [
-          // 4.1 Base formatting for all data rows (Font, Borders, Wrap Strategy)
-          {
-            repeatCell: {
-              range: {
-                sheetId: sheetId,
-                startRowIndex: 1,
-                endRowIndex: totalRows,
-                startColumnIndex: 0,
-                endColumnIndex: 8,
-              },
-              cell: {
-                userEnteredFormat: {
-                  textFormat: {
-                    fontSize: 10,
-                    fontFamily: 'Arial',
-                    foregroundColor: { red: 0.15, green: 0.15, blue: 0.15 },
-                  },
-                  wrapStrategy: 'WRAP',
-                  verticalAlignment: 'MIDDLE',
-                  borders: {
-                    top: { style: 'SOLID', color: { red: 0.88, green: 0.88, blue: 0.88 } },
-                    bottom: { style: 'SOLID', color: { red: 0.88, green: 0.88, blue: 0.88 } },
-                    left: { style: 'SOLID', color: { red: 0.88, green: 0.88, blue: 0.88 } },
-                    right: { style: 'SOLID', color: { red: 0.88, green: 0.88, blue: 0.88 } },
-                  },
-                },
-              },
-              fields: 'userEnteredFormat(textFormat,wrapStrategy,verticalAlignment,borders)',
-            },
-          },
-          // 4.2 Bold headers, deep emerald green background, centered white text
-          {
-            repeatCell: {
-              range: {
-                sheetId: sheetId,
-                startRowIndex: 0,
-                endRowIndex: 1,
-                startColumnIndex: 0,
-                endColumnIndex: 8,
-              },
-              cell: {
-                userEnteredFormat: {
-                  textFormat: {
-                    bold: true,
-                    fontSize: 11,
-                    fontFamily: 'Arial',
-                    foregroundColor: { red: 1.0, green: 1.0, blue: 1.0 },
-                  },
-                  backgroundColor: {
-                    red: 0.016,
-                    green: 0.47,
-                    blue: 0.34,
-                  },
-                  alignment: {
-                    horizontal: 'CENTER',
-                    vertical: 'MIDDLE',
-                  },
-                  borders: {
-                    top: { style: 'SOLID', color: { red: 0.02, green: 0.37, blue: 0.27 } },
-                    bottom: { style: 'SOLID', color: { red: 0.02, green: 0.37, blue: 0.27 } },
-                    left: { style: 'SOLID', color: { red: 0.02, green: 0.37, blue: 0.27 } },
-                    right: { style: 'SOLID', color: { red: 0.02, green: 0.37, blue: 0.27 } },
-                  },
-                },
-              },
-              fields: 'userEnteredFormat(textFormat,backgroundColor,alignment,borders)',
-            },
-          },
-          // 4.3 Center alignment for Columns A, B, C (Ano, Bimestre, Aula)
-          {
-            repeatCell: {
-              range: {
-                sheetId: sheetId,
-                startRowIndex: 1,
-                endRowIndex: totalRows,
-                startColumnIndex: 0,
-                endColumnIndex: 3,
-              },
-              cell: {
-                userEnteredFormat: {
-                  alignment: {
-                    horizontal: 'CENTER',
-                  },
-                },
-              },
-              fields: 'userEnteredFormat(alignment)',
-            },
-          },
-          // 4.4 Center alignment for Column G (Habilidade)
-          {
-            repeatCell: {
-              range: {
-                sheetId: sheetId,
-                startRowIndex: 1,
-                endRowIndex: totalRows,
-                startColumnIndex: 6,
-                endColumnIndex: 7,
-              },
-              cell: {
-                userEnteredFormat: {
-                  alignment: {
-                    horizontal: 'CENTER',
-                  },
-                },
-              },
-              fields: 'userEnteredFormat(alignment)',
-            },
-          },
-          // 4.5 Alternating row colors (subtle emerald-tinted light gray-green on odd rows)
-          {
-            addConditionalFormatRule: {
-              rule: {
-                ranges: [
-                  {
-                    sheetId: sheetId,
-                    startRowIndex: 1,
-                    endRowIndex: totalRows,
-                    startColumnIndex: 0,
-                    endColumnIndex: 8,
-                  },
-                ],
-                booleanRule: {
-                  condition: {
-                    type: 'CUSTOM_FORMULA',
-                    values: [
-                      {
-                        userEnteredValue: '=ISODD(ROW())',
-                      },
-                    ],
-                  },
-                  format: {
-                    backgroundColor: {
-                      red: 0.96,
-                      green: 0.99,
-                      blue: 0.97,
-                    },
-                  },
-                },
-              },
-              index: 0,
-            },
-          },
-          // 4.6 Set basic filter for sorting/filtering
-          {
-            setBasicFilter: {
-              filter: {
-                range: {
-                  sheetId: sheetId,
-                  startRowIndex: 0,
-                  endRowIndex: totalRows,
-                  startColumnIndex: 0,
-                  endColumnIndex: 8,
-                },
-              },
-            },
-          },
-          // 4.7 Set custom column widths
-          ...dimensionRequests,
-        ],
-      }),
-    }
-  );
-
-  if (!batchResponse.ok) {
-    // If format fails, do not throw since data is already created successfully
-    console.warn('Falha ao aplicar formatação opcional na planilha.');
+/**
+ * Human-readable error mapping for Google API HTTP responses
+ */
+async function formatGoogleApiError(response: Response): Promise<Error> {
+  let message = '';
+  try {
+    const data = await response.json();
+    message = data?.error?.message || '';
+  } catch {
+    // Response body not JSON
   }
 
-  return { spreadsheetId, spreadsheetUrl };
+  if (response.status === 401) {
+    return new Error('Sessão Google expirada. Por favor, faça login novamente para renovar a autorização do Google Sheets.');
+  }
+  if (response.status === 403) {
+    return new Error('Permissão insuficiente no Google Sheets. Certifique-se de autorizar a permissão de criar e editar planilhas ao entrar com o Google.');
+  }
+  if (response.status === 429) {
+    return new Error('Limite temporário de requisições excedido na API Google. Aguarde alguns segundos e tente novamente.');
+  }
+  if (response.status >= 500) {
+    return new Error(`Serviços do Google temporariamente instáveis (HTTP ${response.status}). Tente novamente em instantes.`);
+  }
+
+  return new Error(message || `Erro de comunicação com a API Google Sheets (HTTP ${response.status})`);
 }

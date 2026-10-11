@@ -15,7 +15,7 @@ export class PlanningToDocumentAdapter {
       metadata: {
         title: `Plano de Ensino 2026 - ${data.componente}`,
         docente: data.docente || 'Docente Não Informado',
-        escola: data.escola || 'E.E. Unidade Escolar',
+        escola: data.escola || 'E.E. PROF. FRANCISCO ALVARES',
         componente: data.componente || 'Componente Curricular',
         serie: data.serie || 'Ano/Série',
         bimestre: data.bimestre || 'Bimestre',
@@ -24,18 +24,18 @@ export class PlanningToDocumentAdapter {
       },
       page: {
         paperSize: 'A4',
-        widthMm: 210,
-        heightMm: 297,
-        orientation: 'portrait',
+        widthMm: 297,
+        heightMm: 210,
+        orientation: 'landscape',
         marginsMm: {
-          top: margins.top,
-          bottom: margins.bottom,
-          left: margins.left,
-          right: margins.right,
+          top: 12.7,
+          bottom: 12.7,
+          left: 12.7,
+          right: 12.7,
         },
       },
       header: {
-        schoolName: data.escola || 'E.E. NOME DA UNIDADE ESCOLAR',
+        schoolName: data.escola || 'E.E. PROF. FRANCISCO ALVARES',
         regionalDirectorate: 'DIRETORIA DE ENSINO / UNIDADE REGIONAL DE ENSINO - SÃO PAULO',
         stateTitle: 'SECRETARIA DE ESTADO DA EDUCAÇÃO DE SÃO PAULO',
         showLogo: true,
@@ -66,61 +66,148 @@ export class PlanningToDocumentAdapter {
   private buildCampinasLesteBlocks(data: DocumentModelData): DocBlock[] {
     const blocks: DocBlock[] = [];
 
-    // 1. IDENTIFICATION TABLE (Yellow Theme #ffc000)
+    // Helper for Course string
+    const seg = (data.segmento || '').toLowerCase();
+    const comp = (data.componente || '').toLowerCase();
+    const isTech = seg.includes('técnico') || seg.includes('profissional') || seg.includes('emhp') || comp.includes('técnico');
+    const isEF = seg.includes('fundamental') || seg.includes('anos finais') || seg.includes('ef');
+    const cursoText = isTech
+      ? 'Curso: (      ) ANOS FINAIS   (      ) ENSINO MÉDIO   (  X  ) ENSINO MÉDIO COM HABILITAÇÃO PROFISSIONAL'
+      : isEF
+      ? 'Curso: (  X  ) ANOS FINAIS   (      ) ENSINO MÉDIO   (      ) ENSINO MÉDIO COM HABILITAÇÃO PROFISSIONAL'
+      : 'Curso: (      ) ANOS FINAIS   (  X  ) ENSINO MÉDIO   (      ) ENSINO MÉDIO COM HABILITAÇÃO PROFISSIONAL';
+
+    const getBimestreRange = (bim?: string) => {
+      if (bim === '1º Bimestre') return '1º (02/02 a 10/04/2026)';
+      if (bim === '2º Bimestre') return '2º (23/04 a 08/07/2026)';
+      if (bim === '3º Bimestre') return '3º (24/07 a 02/10/2026)';
+      return '4º (05/10 a 18/12/2026)';
+    };
+
+    const getDatasContent = (bim?: string) => {
+      const numSemanas = bim === '4º Bimestre' ? '11 semanas' : '10 semanas';
+      let datesList = '';
+      if (bim === '1º Bimestre') {
+        datesList = '17/02/2026 = Feriado Carnaval\n09 a 13/03/2026 = OMASP\n23 a 27/03/2026 = PROVA PAULISTA 1º BIMESTRE\n03/04/2026 = Feriado Sexta-Feira Santa';
+      } else if (bim === '2º Bimestre') {
+        datesList = '01/05/2026 = Feriado Dia do Trabalho\n18 a 22/05/2026 = OMASP\n04 e 05/06/2026 = Feriado Corpus Christi\n15 a 19/06/2026 = PROVA PAULISTA 2º BIMESTRE\n09/07/2026 = Feriado Revolução Constitucionalista';
+      } else if (bim === '4º Bimestre') {
+        datesList = '12/10 = Feriado Nacional\n13/10 = Catavento e Museu da Lingua Portuguesa (?) – Anos Finais\n15/10 = Feriado Escolar\n20/10 = Simulado Provão Paulista e ENEM (Para o Ensino Médio)\n23/10 = Jardim do Conhecimento/Feira\n29 (Linguagens e CN) e 30/10/2026 (Matemática e CH) = SARESP 9º ano (Impresso)\n02/11 = Feriado Nacional\n04 e 05/11/2026 = Provão Paulista Seriado 3ª serie\n10 e 11/11/2026 = Provão Paulista Seriado 2ª serie\n12 e 13/11/2026 = Provão Paulista Seriado 1ª serie\n18 (Linguagens e CN) e 19/11/2026 (Matemática e CH) = SARESP 6º ano (Digital)\n20/11 = Feriado Nacional\n26 (Linguagens e CN) e 27/11/2026 (Matemática e CH) = SARESP 7º ano (Digital)\n28/11 = Feriado Escolar Dia do Servidor Publico\n30/11 (Linguagens e CN) e 01/12/2026 (Matemática e CH) = SARESP 8º ano (Digital)\n02/12 e (Linguagens e CN) 03/12/2026 = Reposição SARESP\n07, 08 e 09/12 = Recuperação Semestral da SEDUC\n08/12 = Feriado Municipal';
+      } else {
+        datesList = '07/09/2026 = Feriado Independência do Brasil\n27 a 30/07/2026 = Recuperação e Aprofundamento\n03 a 07/08/2026 = Prova de Recuperação\n24 a 28/08/2026 = OLISP\n21 a 25/09/2026 = PROVA PAULISTA 3º BIMESTRE';
+      }
+      return `${numSemanas}\n\nDatas:\n${datesList}`;
+    };
+
+    // 1. IDENTIFICATION TABLE (6 Rows, 3 Structural Columns)
     const idRows: DocTableRow[] = [
+      // Row 1: Escola
       {
         cantSplit: true,
-        backgroundColorHex: '#ffc000',
+        backgroundColorHex: '#C4BC96',
         cells: [
           {
-            text: (data.escola || 'E.E. NOME DA UNIDADE ESCOLAR').toUpperCase(),
+            text: (data.escola || 'E.E. PROF. FRANCISCO ALVARES').toUpperCase(),
             bold: true,
             align: 'center',
-            colSpan: 2,
-            backgroundColorHex: '#ffc000',
+            colSpan: 3,
+            backgroundColorHex: '#C4BC96',
             fontSizePt: 11,
           },
         ],
       },
+      // Row 2: Title
       {
         cantSplit: true,
-        backgroundColorHex: '#ffc000',
+        backgroundColorHex: '#C4BC96',
         cells: [
           {
             text: 'PLANO DE ENSINO COM DESENVOLVIMENTO DO PLANO DE AULA',
             bold: true,
             align: 'center',
-            colSpan: 2,
-            backgroundColorHex: '#ffc000',
+            colSpan: 3,
+            backgroundColorHex: '#C4BC96',
             fontSizePt: 11,
           },
         ],
       },
+      // Row 3: Modalidade
       {
         cantSplit: true,
-        backgroundColorHex: '#ffc000',
+        backgroundColorHex: '#D6E3BC',
         cells: [
-          { text: `Docente: ${data.docente || ''}`, bold: true, backgroundColorHex: '#ffc000' },
-          { text: `Segmento: ${data.segmento || ''}`, bold: true, backgroundColorHex: '#ffc000' },
-        ],
-      },
-      {
-        cantSplit: true,
-        backgroundColorHex: '#ffc000',
-        cells: [
-          { text: `Componente Curricular: ${data.componente || ''}`, bold: true, backgroundColorHex: '#ffc000' },
-          { text: `Ano/Série: ${data.serie || ''}`, bold: true, backgroundColorHex: '#ffc000' },
-        ],
-      },
-      {
-        cantSplit: true,
-        backgroundColorHex: '#ffc000',
-        cells: [
-          { text: `Bimestre: ${data.bimestre || ''}`, bold: true, backgroundColorHex: '#ffc000' },
           {
-            text: `Aplicações e Avaliações: ${data.trabalhosDate || 'Período Regulamentar'}`,
+            text: cursoText,
             bold: true,
-            backgroundColorHex: '#ffc000',
+            align: 'left',
+            colSpan: 3,
+            backgroundColorHex: '#D6E3BC',
+            fontSizePt: 9,
+          },
+        ],
+      },
+      // Row 4: Componente, Ano Letivo, Bimestre
+      {
+        cantSplit: true,
+        backgroundColorHex: '#FFC000',
+        cells: [
+          {
+            text: `Componente Curricular: ${(data.componente || '').toUpperCase()}`,
+            bold: true,
+            align: 'left',
+            backgroundColorHex: '#FFC000',
+            fontSizePt: data.componente && data.componente.length > 35 ? 8 : 9,
+          },
+          {
+            text: 'Ano Letivo: 2026',
+            bold: true,
+            align: 'left',
+            backgroundColorHex: '#FFC000',
+            fontSizePt: 9,
+          },
+          {
+            text: `Bimestre: ${getBimestreRange(data.bimestre)}`,
+            bold: true,
+            align: 'left',
+            backgroundColorHex: '#FFC000',
+            fontSizePt: 9,
+          },
+        ],
+      },
+      // Row 5: Docente e Série
+      {
+        cantSplit: true,
+        backgroundColorHex: '#D6E3BC',
+        cells: [
+          {
+            text: `Docente: ${(data.docente || '').toUpperCase()}`,
+            bold: true,
+            align: 'left',
+            colSpan: 2,
+            backgroundColorHex: '#D6E3BC',
+            fontSizePt: 11,
+          },
+          {
+            text: `Ano/Série: ${(data.serie || '').toUpperCase()}`,
+            bold: true,
+            align: 'left',
+            backgroundColorHex: '#D6E3BC',
+            fontSizePt: 9,
+          },
+        ],
+      },
+      // Row 6: Calendário
+      {
+        cantSplit: true,
+        backgroundColorHex: '#FFC000',
+        cells: [
+          {
+            text: getDatasContent(data.bimestre),
+            bold: false,
+            align: 'justify',
+            colSpan: 3,
+            backgroundColorHex: '#FFC000',
+            fontSizePt: 9.5,
           },
         ],
       },
@@ -128,15 +215,43 @@ export class PlanningToDocumentAdapter {
 
     blocks.push({
       type: 'table',
-      colWidthsPercent: [50, 50],
+      colWidthsPercent: [50.0, 23.64, 26.36],
       rows: idRows,
     });
 
     blocks.push({
       type: 'paragraph',
       text: '',
-      spaceBeforePt: 6,
-      spaceAfterPt: 6,
+      spaceBeforePt: 2,
+      spaceAfterPt: 4,
+    });
+
+    // 2. SECTION HEADER (Cyan #00B0F0)
+    blocks.push({
+      type: 'table',
+      colWidthsPercent: [100],
+      rows: [
+        {
+          cantSplit: true,
+          cells: [
+            {
+              text: 'PLANO DE ENSINO – BASE GUIA PRIORIZADO',
+              bold: true,
+              align: 'center',
+              backgroundColorHex: '#00B0F0',
+              textColorHex: '#000000',
+              fontSizePt: 11,
+            },
+          ],
+        },
+      ],
+    });
+
+    blocks.push({
+      type: 'paragraph',
+      text: '',
+      spaceBeforePt: 2,
+      spaceAfterPt: 4,
     });
 
     // 2. WEEKLY TABLES

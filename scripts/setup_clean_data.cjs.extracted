@@ -1,0 +1,508 @@
+[Arquivo 93/99] scripts/setup_clean_data.cjs
+Linhas: 483 | Tamanho: 21.15 KB | Tipo: .cjs
+1 | const fs = require("fs");
+2 | const path = require("path");
+3 |
+4 | const dataDir = path.resolve("src/data");
+5 | if (!fs.existsSync(dataDir)) {
+6 | fs.mkdirSync(dataDir, { recursive: true });
+7 | }
+8 |
+9 | // 1. logoSp.ts
+10 | fs.writeFileSync(
+11 | path.join(dataDir, "logoSp.ts"),
+12 | `export const LOGO_SP_BASE64 = "data:image/
+png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAwCAYAAAAk7WkPAAAACXBIWXMAAAsTAAALEwEAmpw...	13 | );
+14 |
+15 | // 2. socioemocionalDatabase.ts
+16 | fs.writeFileSync(
+17 | path.join(dataDir, "socioemocionalDatabase.ts"),
+18 | `export const MATRIZ_SOCIOEMOCIONAL: Record<string, { macro: string; competencias: string[]; descricao: string }
+> = {	19 | "Amabilidade": {
+20 | macro: "Amabilidade",
+21 | competencias: ["Empatia", "Respeito", "Confiança"],
+22 | descricao: "Capacidade de agir com empatia, generosidade, consideração e respeito pelos outros."
+23 | },
+24 | "Autogestão": {
+25 | macro: "Autogestão",
+26 | competencias: ["Foco", "Responsabilidade", "Organização", "Determinação", "Persistência"],
+27 | descricao: "Capacidade de gerenciar metas, manter a disciplina, planejar ações e persistir diante de desafios."
+28 | },
+29 | "Engajamento com os Outros": {
+30 | macro: "Engajamento com os Outros",
+31 | competencias: ["Iniciativa Social", "Assertividade", "Entusiasmo"],
+32 | descricao: "Capacidade de se expressar ativamente, interagir de forma positiva e motivar o grupo."
+33 | },
+34 | "Resiliência Emocional": {
+35 | macro: "Resiliência Emocional",
+36 | competencias: ["Tolerância ao Estresse", "Autoconfiança", "Tolerância à Frustração"],
+37 | descricao: "Capacidade de manter o equilíbrio emocional e lidar com situações adversas e imprevistos."
+38 | },
+39 | "Abertura ao Novo": {
+40 | macro: "Abertura ao Novo",
+41 | competencias: ["Curiosidade para Aprender", "Imaginação Criativa", "Interesse Artístico"],
+42 | descricao: "Capacidade de explorar ideias novas, exercitar a criatividade e valorizar a diversidade cultural."
+43 | }
+44 | };\n`
+45 | );
+46 |
+47 | // 3. recoveryData2026.ts
+48 | fs.writeFileSync(
+49 | path.join(dataDir, "recoveryData2026.ts"),
+50 | `export interface RecoveryTopic {
+51 | habilidade: string;
+52 | conteudo: string;
+53 | revisaoAulas: string[];
+54 | }
+55 |
+56 | export const OFFICIAL_RECOVERY_DATA_2026: Record<string, Record<string, Record<string, RecoveryTopic[]>>> = {
+57 | "Matemática": {
+58 | "6º Ano": {
+59 | "1º Bimestre": [
+60 | {
+61 | habilidade: "AE2 Comparar e ordenar números naturais de diferentes ordens, utilizando, inclusive, a reta
+numérica com...	62 | conteudo: "Reta numérica",
+63 | revisaoAulas: ["6 Comparação e ordenação de números naturais", "7 Números naturais na reta numérica"]
+64 | }
+65 | ],
+66 | "2º Bimestre": [
+67 | {
+68 | habilidade: "AE4 Resolver e elaborar situações-problema com números naturais, envolvendo as noções de
+divisor e múlti...	69 | conteudo: "Múltiplos e divisores",
+70 | revisaoAulas: ["3 Divisores e múltiplos", "4 Critérios de divisibilidade"]
+71 | }
+72 | ]
+73 | },
+74 | "7º Ano": {
+75 | "1º Bimestre": [
+76 | {
+77 | habilidade: "AE1 Compreender e utilizar a multiplicação e divisão de números inteiros na resolução de
+problemas.",	78 | conteudo: "Operações com números inteiros",
+79 | revisaoAulas: ["4 Multiplicação de inteiros", "5 Divisão de inteiros"]
+80 | }
+
+-- 302 of 1375 --
+
+scripts/setup_clean_data.cjs (continuação)
+81 | ],
+82 | "2º Bimestre": [
+83 | {
+84 | habilidade: "AE3 Resolver e elaborar situações-problema que envolvam porcentagens como frações.",
+85 | conteudo: "Cálculo percentual",
+86 | revisaoAulas: ["6 Fração e porcentagem", "7 Problemas com descontos e acréscimos"]
+87 | }
+88 | ]
+89 | }
+90 | },
+91 | "Língua Portuguesa": {
+92 | "6º Ano": {
+93 | "1º Bimestre": [
+94 | {
+95 | habilidade: "AE1 Reconhecer os elementos da narrativa em contos e crônicas.",
+96 | conteudo: "Elementos da narrativa",
+97 | revisaoAulas: ["2 Estrutura do conto", "3 Foco narrativo"]
+98 | }
+99 | ],
+100 | "2º Bimestre": [
+101 | {
+102 | habilidade: "AE2 Identificar a ideia central e secundárias em textos jornalísticos.",
+103 | conteudo: "Gêneros jornalísticos",
+104 | revisaoAulas: ["4 Notícia e reportagem", "5 Fato e opinião"]
+105 | }
+106 | ]
+107 | }
+108 | }
+109 | };\n`
+110 | );
+111 |
+112 | // 4. itinerariosEMData.ts
+113 | let itinerariosEMContent = `import { CurriculumItem } from "../types";\n\n`;
+114 | if (fs.existsSync("scripts/temp_eval.js")) {
+115 | const t = fs.readFileSync("scripts/temp_eval.js", "utf8");
+116 | const match = t.match(/itinerariosEMData\s*=\s*(\[[\s\S]*?\]);/);
+117 | if (match) {
+118 | itinerariosEMContent += `export const itinerariosEMData: CurriculumItem[] = ${match[1]};\n`;
+119 | } else {
+120 | itinerariosEMContent += `export const itinerariosEMData: CurriculumItem[] = [];\n`;
+121 | }
+122 | } else {
+123 | itinerariosEMContent += `export const itinerariosEMData: CurriculumItem[] = [];\n`;
+124 | }
+125 | fs.writeFileSync(path.join(dataDir, "itinerariosEMData.ts"), itinerariosEMContent);
+126 |
+127 | // 5. tecnicoData.ts
+128 | fs.writeFileSync(
+129 | path.join(dataDir, "tecnicoData.ts"),
+130 | `import { CurriculumItem } from "../types";
+131 |
+132 | export const ALL_TECNICO_DATA: Record<string, Record<string, Record<string, CurriculumItem[]>>> = {
+133 | "Administração": {
+134 | "1ª Série": {
+135 | "1º Bimestre": [
+136 | {
+137 | id: "adm-1s-1b-1",
+138 | ano: "1ª Série",
+139 | bimestre: "1º Bimestre",
+140 | aula: "1",
+141 | titulo: "Introdução à Administração",
+142 | conteudo: "Conceitos fundamentais de gestão e organizações.",
+143 | objetivos: "Compreender o papel do administrador.",
+144 | habilidade: "Identificar as funções administrativas essenciais.",
+145 | disciplina: "Administração"
+146 | }
+147 | ]
+148 | }
+149 | },
+150 | "Desenvolvimento de Sistemas": {
+151 | "1ª Série": {
+152 | "1º Bimestre": [
+153 | {
+154 | id: "ds-1s-1b-1",
+155 | ano: "1ª Série",
+156 | bimestre: "1º Bimestre",
+157 | aula: "1",
+158 | titulo: "Lógica de Programação",
+159 | conteudo: "Algoritmos, variáveis e estruturas de controle.",
+160 | objetivos: "Desenvolver algoritmos estruturados.",
+161 | habilidade: "Construir sequências lógicas de instruções.",
+162 | disciplina: "Desenvolvimento de Sistemas"
+163 | }
+
+-- 303 of 1375 --
+
+scripts/setup_clean_data.cjs (continuação)
+164 | ]
+165 | }
+166 | }
+167 | };
+168 |
+169 | export function mapTecnicoToCurriculum(course: string, grade: string, bimester: string): CurriculumItem[] {
+170 | if (ALL_TECNICO_DATA[course] && ALL_TECNICO_DATA[course][grade] && ALL_TECNICO_DATA[course][grade][bimester]) {
+171 | return ALL_TECNICO_DATA[course][grade][bimester];
+172 | }
+173 | return [];
+174 | }\n`
+175 | );
+176 |
+177 | // 6. diversificadaData.ts
+178 | fs.writeFileSync(
+179 | path.join(dataDir, "diversificadaData.ts"),
+180 | `import { CurriculumItem } from "../types";
+181 |
+182 | export type ProjetoVidaItem = CurriculumItem;
+183 | export type TecnologiaInovacaoItem = CurriculumItem;
+184 | export type OrientacaoEstudoItem = CurriculumItem;
+185 | export type EducacaoFinanceiraItem = CurriculumItem;
+186 | export type RedacaoLeituraItem = CurriculumItem;
+187 |
+188 | export const PROJETO_DE_VIDA_DATA: CurriculumItem[] = [
+189 | {
+190 | id: "pv-6-1-1",
+191 | ano: "6º Ano",
+192 | bimestre: "1º Bimestre",
+193 | aula: "1",
+194 | titulo: "Quem sou eu: Identidade e Autoconhecimento",
+195 | conteudo: "Reflexão sobre características pessoais e potencialidades.",
+196 | objetivos: "Reconhecer suas próprias características físicas e emocionais.",
+197 | habilidade: "Autoconhecimento e construção da identidade pessoal.",
+198 | disciplina: "Projeto de Vida"
+199 | }
+200 | ];
+201 |
+202 | export const TECNOLOGIA_INOVACAO_DATA: CurriculumItem[] = [
+203 | {
+204 | id: "tec-6-1-1",
+205 | ano: "6º Ano",
+206 | bimestre: "1º Bimestre",
+207 | aula: "1",
+208 | titulo: "Cidadania Digital e Segurança na Web",
+209 | conteudo: "Princípios de privacidade, pegada digital e segurança.",
+210 | objetivos: "Compreender os riscos e boas práticas no ambiente digital.",
+211 | habilidade: "Utilizar tecnologias digitais de forma crítica e segura.",
+212 | disciplina: "Tecnologia e Inovação"
+213 | }
+214 | ];
+215 |
+216 | export const ORIENTACAO_ESTUDO_MATEMATICA_DATA: CurriculumItem[] = [
+217 | {
+218 | id: "oem-6-1-1",
+219 | ano: "6º Ano",
+220 | bimestre: "1º Bimestre",
+221 | aula: "1",
+222 | titulo: "Estratégias de Resolução de Problemas",
+223 | conteudo: "Organização do pensamento matemático e checagem de resultados.",
+224 | objetivos: "Desenvolver autonomia na resolução de exercícios matemáticos.",
+225 | habilidade: "Planejar passos lógicos para solucionar desafios.",
+226 | disciplina: "Orientação de Estudos"
+227 | }
+228 | ];
+229 |
+230 | export const ORIENTACAO_ESTUDO_PORTUGUES_DATA: CurriculumItem[] = [];
+231 |
+232 | export const EDUCACAO_FINANCEIRA_DATA: CurriculumItem[] = [
+233 | {
+234 | id: "ef-6-1-1",
+235 | ano: "6º Ano",
+236 | bimestre: "1º Bimestre",
+237 | aula: "1",
+238 | titulo: "Necessidades vs. Desejos no Consumo",
+239 | conteudo: "Diferença entre gastos essenciais e supérfluos.",
+240 | objetivos: "Analisar escolhas financeiras conscientes no dia a dia.",
+241 | habilidade: "Planejar o uso do dinheiro com responsabilidade e sustentabilidade.",
+242 | disciplina: "Educação Financeira"
+243 | }
+244 | ];
+245 |
+246 | export const REDACAO_LEITURA_DATA: CurriculumItem[] = [
+
+-- 304 of 1375 --
+
+scripts/setup_clean_data.cjs (continuação)
+247 | {
+248 | id: "rl-6-1-1",
+249 | ano: "6º Ano",
+250 | bimestre: "1º Bimestre",
+251 | aula: "1",
+252 | titulo: "Leitura Expressiva e Produção Crítica",
+253 | conteudo: "Compreensão global de textos e prática de escrita autoral.",
+254 | objetivos: "Identificar temas centrais e formular posicionamentos fundamentados.",
+255 | habilidade: "Produzir textos com coesão, clareza e adequação discursiva.",
+256 | disciplina: "Redação e Leitura"
+257 | }
+258 | ];\n`
+259 | );
+260 |
+261 | // 7. curriculumData.ts
+262 | fs.writeFileSync(
+263 | path.join(dataDir, "curriculumData.ts"),
+264 | `import { CurriculumItem } from "../types";
+265 |
+266 | export const initialCurriculumData: CurriculumItem[] = [
+267 | {
+268 | id: "Matemática-6ºAno-1ºBimestre-1",
+269 | ano: "6º Ano",
+270 | bimestre: "1º Bimestre",
+271 | aula: "1",
+272 | titulo: "Os números naturais em situações do cotidiano – Parte 1",
+273 | conteudo: "Leitura, representação, identificação e utilização de números naturais.",
+274 | objetivos: "Reconhecer o sistema de numeração decimal em contextos práticos.",
+275 | habilidade: "EF06MA01 - Comparar, ordenar, ler e escrever números naturais.",
+276 | disciplina: "Matemática"
+277 | },
+278 | {
+279 | id: "Língua Portuguesa-6ºAno-1ºBimestre-1",
+280 | ano: "6º Ano",
+281 | bimestre: "1º Bimestre",
+282 | aula: "1",
+283 | titulo: "Leitura e Interpretação de Crônicas Cotidianas",
+284 | conteudo: "Características estruturais e recursos estilísticos da crônica.",
+285 | objetivos: "Identificar o tema e a progressão temática do texto narrativo.",
+286 | habilidade: "EF69LP47 - Analisar a presença de recursos estilísticos na narrativa.",
+287 | disciplina: "Língua Portuguesa"
+288 | }
+289 | ];\n`
+290 | );
+291 |
+292 | // 8. subjectMappings.ts
+293 | fs.writeFileSync(
+294 | path.join(dataDir, "subjectMappings.ts"),
+295 | `import { LOGO_SP_BASE64 } from "./logoSp";
+296 |
+297 | export const SUBJECT_MAPPINGS: Record<string, any> = {
+298 | "Matemática": {
+299 | unidadeTematica: "Números, Álgebra, Geometria, Grandezas e Medidas, Probabilidade e Estatística",
+300 | objetosConhecimento: "Sistemas de numeração, operações fundamentais, equações, cálculo mental e
+proporcionalidade.",	301 | espacoFisico: [
+302 | "Sala de aula com apoio visual e recursos didáticos estruturados.",
+303 | "Laboratório de informática ou ambiente para uso de simuladores e planilhas digitais."
+304 | ],
+305 | referencias: [
+306 | "Currículo Paulista (Seduc-SP, 2026).",
+307 | "Material Digital da Secretaria da Educação do Estado de São Paulo."
+308 | ]
+309 | },
+310 | "Língua Portuguesa": {
+311 | unidadeTematica: "Leitura, Produção de Textos, Oralidade e Análise Linguística/Semiótica",
+312 | objetosConhecimento: "Gêneros textuais, estratégias de leitura, coesão, coerência e normas gramaticais.",
+313 | espacoFisico: [
+314 | "Sala de aula com acervo de leitura e suporte para dinâmicas comunicativas.",
+315 | "Sala de leitura / biblioteca escolar."
+316 | ],
+317 | referencias: [
+318 | "Currículo Paulista (Seduc-SP, 2026).",
+319 | "Material Digital da Secretaria da Educação do Estado de São Paulo."
+320 | ]
+321 | }
+322 | };
+323 |
+324 | export function buildAvaEfapeDocumentHTML(
+325 | schoolName: string,
+326 | teacherName: string,
+327 | directorate: string,
+328 | subject: string,
+329 | grade: string,
+
+-- 305 of 1375 --
+
+scripts/setup_clean_data.cjs (continuação)
+330 | bimestre: string,
+331 | selectedLessons: any[],
+332 | weeks: any[],
+333 | dataEnvio?: string,
+334 | dataDevolutiva?: string
+335 | ): string {
+336 | const mapping = SUBJECT_MAPPINGS[subject] || SUBJECT_MAPPINGS["Matemática"];
+337 | const espacoFisicoHTML = (mapping.espacoFisico || []).map((e) => "<li style=\\"margin-bottom: 2pt;\\">" + e + "</
+li>").join("");	338 | const referenciasHTML = (mapping.referencias || []).map((r) => "<li style=\\"margin-bottom: 2pt;\\">" + r + "</
+li>").join("");	339 |
+340 | return [
+341 | "<div style=\\"background: #f1f5f9; padding: 20px 0;\\">",
+342 | " <table style=\\"width: 100%; border-collapse: collapse; margin-bottom: 12px; font-family: Cambria, 'Cambria
+Math', Georg...	343 | " <tr>",
+344 | " <td style=\\"width: 130px; vertical-align: middle; border: none; padding: 0;\\">",
+345 | " <div style=\\"display: flex; align-items: center;\\">",
+346 | " <img src=\\"" + LOGO_SP_BASE64 + "\\" alt=\\"Logo Governo SP\\" style=\\"width: 125px; height:
+auto; display: bl...	347 | " </div>",
+348 | " </td>",
+349 | " <td style=\\"vertical-align: middle; border: none; padding: 0; text-align: center;\\">",
+350 | " <div style=\\"font-size: 10.5pt; font-weight: bold; line-height: 1.3; text-transform: uppercase;
+color: #1a1a1a; f...	351 | " GOVERNO DO ESTADO DE SÃO PAULO &mdash; SECRETARIA DA EDUCAÇÃO",
+352 | " </div>",
+353 | " <div style=\\"font-size: 10pt; font-weight: bold; line-height: 1.3; margin-top: 2px; text-transform:
+uppercase; co...	354 | " AMBIENTE VIRTUAL DE APRENDIZAGEM &mdash; AVA-EFAPE",
+355 | " </div>",
+356 | " <div style=\\"font-size: 8.5pt; color: #555555; line-height: 1.2; margin-top: 3px; font-family:
+Cambria, Georgia, ...	357 | " Plano de Aula Semanal Integrado ao Componente Curricular Priorizado",
+358 | " </div>",
+359 | " </td>",
+360 | " </tr>",
+361 | " </table>",
+362 | " <div style=\\"padding: 10px; font-family: Cambria, Georgia, serif;\\">",
+363 | " <p><strong>Escola:</strong> " + schoolName + "</p>",
+364 | " <p><strong>Docente:</strong> " + teacherName + "</p>",
+365 | " <p><strong>Componente:</strong> " + subject + " - " + grade + " (" + bimestre + ")</p>",
+366 | " </div>",
+367 | "</div>"
+368 | ].join("\\n");
+369 | }\n`
+370 | );
+371 |
+372 | // 9. recoveryTemplates.ts
+373 | fs.writeFileSync(
+374 | path.join(dataDir, "recoveryTemplates.ts"),
+375 | `import { OFFICIAL_RECOVERY_DATA_2026 } from "./recoveryData2026";
+376 | import { LOGO_SP_BASE64 } from "./logoSp";
+377 |
+378 | export interface RecoveryPlanResult {
+379 | title: string;
+380 | ancoragemLegal: string;
+381 | verboComando?: string;
+382 | objetoConhecimento?: string;
+383 | revisaoAulas?: string;
+384 | diagnosticoDificuldades?: string;
+385 | intervencaoPedagogica?: string;
+386 | metodologiasDiferenciadas?: string;
+387 | instrumentosAvaliacao?: string;
+388 | matrizCognitiva: string;
+389 | planoAulas: string;
+390 | exercicioQuestoes?: Array<{
+391 | enunciado: string;
+392 | gabarito: string;
+393 | justificativa: string;
+394 | }>;
+395 | orientacoesAcompanhamento?: string;
+396 | modificador?: string;
+397 | habilidadesRelacionadas?: string;
+398 | habilidadesPrevias?: string;
+399 | itemAvaliacao?: string;
+400 | gabarito?: string;
+401 | feedbackPedagogico?: string;
+402 | fullMarkdown?: string;
+403 | }
+404 |
+405 | function escapeHtml(a: any): string {
+406 | return a == null ? "" : String(a).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/
+g, "&quot;")....	407 | }
+408 |
+409 | function normalizeStr(a: string): string {
+410 | return a.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+411 | }
+412 |
+
+-- 306 of 1375 --
+
+scripts/setup_clean_data.cjs (continuação)
+413 | export const PRESET_RECOVERY_TEMPLATES: Record<string, RecoveryPlanResult> = {
+414 | tecnologia_7: {
+415 | title: "Plano de Recuperação e Aprofundamento Semestral (Currículo Paulista 2026)",
+416 | ancoragemLegal: "Conforme Resolução SEDUC 42/2024, para estudantes com rendimento abaixo de 5,0 no 1º
+semestre.",	417 | matrizCognitiva: "| Bimestre | Habilidade Essencial | Conteúdo de Retomada |\\n|---|---|---|\\n| 1º Bimestre |
+Organização ...	418 | planoAulas: "| Semana | Aulas | Foco Pedagógico |\\n|---|---|---|\\n| 1 | Aula 1 e 2 | Diagnóstico e
+nivelamento |"	419 | }
+420 | };
+421 |
+422 | export function matchOfficialRecoveryItem(componente: string, ano: string, bimestre: string) {
+423 | const normComp = normalizeStr(componente);
+424 | const normAno = normalizeStr(ano);
+425 | const normBim = normalizeStr(bimestre);
+426 |
+427 | const foundComp = Object.keys(OFFICIAL_RECOVERY_DATA_2026).find(c => normalizeStr(c).includes(normComp) ||
+normComp.includes(...	428 | if (!foundComp) return null;
+429 |
+430 | const compData = OFFICIAL_RECOVERY_DATA_2026[foundComp];
+431 | const foundAno = Object.keys(compData).find(a => normalizeStr(a).includes(normAno) ||
+normAno.includes(normalizeStr(a)));	432 | if (!foundAno) return null;
+433 |
+434 | const anoData = compData[foundAno];
+435 | const foundBim = Object.keys(anoData).find(b => normalizeStr(b).includes(normBim) ||
+normBim.includes(normalizeStr(b)));	436 | if (!foundBim) return null;
+437 |
+438 | return anoData[foundBim]?.[0] || null;
+439 | }
+440 |
+441 | export function generateCustomRecoveryPlan(params: any): RecoveryPlanResult {
+442 | const item1 = matchOfficialRecoveryItem(params.componente, params.ano, "1º Bimestre");
+443 | const item2 = matchOfficialRecoveryItem(params.componente, params.ano, "2º Bimestre");
+444 |
+445 | return {
+446 | title: "Plano de Recuperação e Aprofundamento Semestral (Currículo Paulista 2026)",
+447 | ancoragemLegal: "Fundamentado na Resolução SEDUC 42/2024 e no cronograma oficial do 1º Semestre Letivo de
+2026.",	448 | matrizCognitiva: "| Bimestre | Habilidade Prioritária | Conteúdo de Retomada |\\n|---|---|---|\\n| 1º Bim | "
++ (item1?.hab...	449 | planoAulas: "| Semana | Carga Horária | Metodologia de Recomposição |\\n|---|---|---|\\n| Sem 1 | 2 aulas |
+Revisão guiada ...	450 | };
+451 | }
+452 |
+453 | export function buildRecoveryPlanHTML(schoolName: string, teacherName: string, plan: RecoveryPlanResult | null,
+options: any): ...	454 | if (!plan) return "";
+455 | return [
+456 | "<div style=\\"font-family: Cambria, Georgia, serif; color: #1e293b; padding: 20px;\\">",
+457 | " <table style=\\"width: 100%; border-collapse: collapse; margin-bottom: 16px;\\">",
+458 | " <tr>",
+459 | " <td style=\\"width: 140px;\\">",
+460 | " <img src=\\"" + LOGO_SP_BASE64 + "\\" alt=\\"Logo Governo SP\\" style=\\"width: 130px; height: auto;\
+\" />",	461 | " </td>",
+462 | " <td style=\\"text-align: center;\\">",
+463 | " <h3 style=\\"margin: 0; color: #1e3a8a;\\">SECRETARIA DA EDUCAÇÃO DO ESTADO DE SÃO PAULO - SEDUC-SP</
+h3>",	464 | " <h2 style=\\"margin: 4px 0; color: #1e293b;\\">" + escapeHtml(plan.title) + "</h2>",
+465 | " </td>",
+466 | " </tr>",
+467 | " </table>",
+468 | " <div style=\\"margin-top: 15px;\\">",
+469 | " <p><strong>Escola:</strong> " + escapeHtml(schoolName) + " | <strong>Docente:</strong> " +
+escapeHtml(teacherName) + "...	470 | " <p><strong>Base Legal:</strong> " + escapeHtml(plan.ancoragemLegal) + "</p>",
+471 | " </div>",
+472 | "</div>"
+473 | ].join("\\n");
+474 | }
+475 |
+476 | export function generateRecoveryPlanMarkdown(schoolName: string, teacherName: string, plan: RecoveryPlanResult |
+null, options:...	477 | if (!plan) return "";
+478 | return "# " + plan.title + "\\n\\n**Escola:** " + schoolName + "\\n**Docente:** " + teacherName + "\\n\\n##
+Ancoragem Legal\\...	479 | }\n`
+480 | );
+481 |
+482 | console.log("All 9 data files written successfully!");
+483 |
+
+-- 307 of 1375 --
+

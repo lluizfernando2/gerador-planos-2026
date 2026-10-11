@@ -9,8 +9,7 @@ import {
   getDocs, 
   query, 
   where, 
-  deleteDoc, 
-  serverTimestamp 
+  deleteDoc
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -19,45 +18,57 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const googleProvider = new GoogleAuthProvider();
-// Request required Google Workspace scopes for sheets and drive
-googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
-googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
-
-// Cache the access token in-memory for security
-let cachedAccessToken: string | null = null;
-let isSigningIn = false;
 
 export const initAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: User, token?: string | null) => void,
   onAuthFailure?: () => void
 ) => {
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        // If logged into Firebase but don't have token cached yet, we might need a re-auth or user interaction
-        if (onAuthFailure) onAuthFailure();
-      }
+      const token = await user.getIdToken().catch(() => null);
+      if (onAuthSuccess) onAuthSuccess(user, token);
     } else {
-      cachedAccessToken = null;
       if (onAuthFailure) onAuthFailure();
     }
   });
 };
 
-export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+export const getAccessToken = async (): Promise<string | null> => {
+  const user = auth.currentUser;
+  if (!user) return null;
   try {
-    isSigningIn = true;
+    return await user.getIdToken();
+  } catch (err) {
+    console.error('Failed to get token:', err);
+    return null;
+  }
+};
+
+export const getGoogleAccessToken = (): string | null => {
+  return null;
+};
+
+export const mapAuthError = (err: any): { message: string; code?: string } => {
+  const code = String(err?.code || err?.message || '');
+  if (code.includes('popup-blocked')) {
+    return { code, message: 'A janela popup de login foi bloqueada pelo navegador. Permita popups para entrar.' };
+  }
+  if (code.includes('unauthorized-domain')) {
+    return { code, message: 'O domínio do applet não está autorizado no console do Firebase.' };
+  }
+  if (code.includes('popup-closed-by-user')) {
+    return { code, message: 'A janela de login foi fechada antes de concluir a autenticação.' };
+  }
+  return { code, message: 'Falha ao autenticar com o Google.' };
+};
+
+export const googleSignIn = async (): Promise<{ user: User; accessToken?: string | null } | null> => {
+  try {
     const result = await signInWithPopup(auth, googleProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to get Google Access Token from Auth Popup.');
-    }
-    cachedAccessToken = credential.accessToken;
-    
-    // Save/Sync user profile doc
+    const token = credential?.accessToken || (await result.user.getIdToken().catch(() => null));
     if (result.user) {
+      // Sync user profile doc
       await setDoc(doc(db, 'users', result.user.uid), {
         userId: result.user.uid,
         email: result.user.email || '',
@@ -65,27 +76,20 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
         updatedAt: new Date().toISOString()
       }, { merge: true });
     }
-
-    return { user: result.user, accessToken: cachedAccessToken };
+    return { user: result.user, accessToken: token };
   } catch (error) {
     console.error('Sign-in error:', error);
     throw error;
-  } finally {
-    isSigningIn = false;
   }
-};
-
-export const getAccessToken = (): string | null => {
-  return cachedAccessToken;
 };
 
 export const logoutUser = async () => {
   await signOut(auth);
-  cachedAccessToken = null;
 };
+export const logout = logoutUser;
 
 /* =========================================================================
-   FIRESTORE SECURE DATA HELPERS (ENFORCING USER OWNERSHIP & RLS)
+   FIRESTORE SECURE DATA HELPERS (user_plans, user_settings)
    ========================================================================= */
 
 export interface SavedPlanRecord {
@@ -110,7 +114,7 @@ export interface TeacherSettingsRecord {
 }
 
 /**
- * Saves or updates a lesson plan for the current authenticated teacher.
+ * Saves or updates a lesson plan for the authenticated teacher.
  */
 export async function saveUserLessonPlan(plan: Omit<SavedPlanRecord, 'userId' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<string> {
   const currentUser = auth.currentUser;
@@ -120,19 +124,23 @@ export async function saveUserLessonPlan(plan: Omit<SavedPlanRecord, 'userId' | 
 
   const planId = plan.id || `${currentUser.uid}_${Date.now()}`;
   const planRef = doc(db, 'user_plans', planId);
+  const existingDoc = await getDoc(planRef);
+
+  const now = new Date().toISOString();
+  const createdAt = existingDoc.exists() ? (existingDoc.data()?.createdAt || now) : now;
 
   const payload: SavedPlanRecord = {
     userId: currentUser.uid,
-    title: plan.title,
-    subject: plan.subject,
-    grade: plan.grade,
-    bimester: plan.bimester || '',
-    data: plan.data,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    title: (plan.title || 'Plano de Ensino').slice(0, 200),
+    subject: (plan.subject || 'Componente').slice(0, 100),
+    grade: (plan.grade || 'Série/Ano').slice(0, 100),
+    bimester: (plan.bimester || '1º Bimestre').slice(0, 100),
+    data: plan.data || {},
+    createdAt,
+    updatedAt: now
   };
 
-  await setDoc(planRef, payload, { merge: true });
+  await setDoc(planRef, payload);
   return planId;
 }
 
@@ -194,7 +202,10 @@ export async function saveTeacherSettings(settings: Omit<TeacherSettingsRecord, 
   const settingsRef = doc(db, 'user_settings', currentUser.uid);
   await setDoc(settingsRef, {
     userId: currentUser.uid,
-    ...settings,
+    escola: settings.escola || '',
+    docente: settings.docente || '',
+    componente: settings.componente || '',
+    serie: settings.serie || '',
     updatedAt: new Date().toISOString()
   }, { merge: true });
 }
@@ -216,4 +227,3 @@ export async function getTeacherSettings(): Promise<TeacherSettingsRecord | null
   }
   return null;
 }
-

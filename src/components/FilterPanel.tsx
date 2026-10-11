@@ -218,9 +218,6 @@ export default function FilterPanel({
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 text-sm font-medium transition-colors"
             >
               <option value="Todos">Todos os Bimestres</option>
-              <option value="1º Bimestre">1º Bimestre</option>
-              <option value="2º Bimestre">2º Bimestre</option>
-              <option value="3º Bimestre">3º Bimestre</option>
               <option value="4º Bimestre">4º Bimestre</option>
             </select>
           </div>

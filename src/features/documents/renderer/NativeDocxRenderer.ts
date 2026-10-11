@@ -151,12 +151,14 @@ export class NativeDocxRenderer {
     );
 
     const rows = block.rows.map((row) => {
-      const cells = row.cells.map((cell, cellIdx) => {
+      let colOffset = 0;
+      const cells = row.cells.map((cell) => {
         const span = cell.colSpan || 1;
         let cellWidthTwips = 0;
         for (let i = 0; i < span; i++) {
-          cellWidthTwips += colTwips[cellIdx + i] || colTwips[colTwips.length - 1];
+          cellWidthTwips += colTwips[colOffset + i] || colTwips[colTwips.length - 1];
         }
+        colOffset += span;
 
         const align = this.getAlignment(cell.align);
         const lines = cell.text.split('\n');

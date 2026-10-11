@@ -1,0 +1,7 @@
+{
+  "firestore": {
+    "database": "ai-studio-currculoprioriza-37ffe096-1718-471a-88ab-badfc6819341",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

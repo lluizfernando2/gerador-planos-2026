@@ -3,15 +3,22 @@ export interface CurriculumItem {
   ano: string;
   bimestre: string;
   aula: string;
-  titulo: string;
-  conteudo: string;
-  objetivos: string;
-  habilidade: string;
+  titulo?: string;
+  conteudo?: string;
+  objetivos?: string;
+  habilidade?: string;
   aprendizagem?: string;
   disciplina?: string;
   eixo?: string;
   unidadeTematica?: string;
+  objetoConhecimento?: string;
+  habilidadeCodigo?: string;
+  habilidadeTexto?: string;
+  semanaInicio?: number;
+  semanaFim?: number;
+  tipo?: string;
   raw?: any;
+  [key: string]: any;
 }
 
 export type GradeFilter = 'Todos' | '6º Ano' | '7º Ano' | '8º Ano' | '9º Ano' | '1ª Série' | '2ª Série' | '3ª Série';

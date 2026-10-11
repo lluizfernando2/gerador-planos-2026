@@ -1,5 +1,21 @@
-import React from 'react';
-import { Monitor, Sliders, Copy, FileText, ExternalLink, Printer, Loader2, BookOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Monitor,
+  Copy,
+  FileText,
+  ExternalLink,
+  Printer,
+  Loader2,
+  BookOpen,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
+  ChevronDown,
+  Sliders,
+  Check,
+  LayoutGrid
+} from 'lucide-react';
 import { MarginSettings, PlanFormat, WeekPlan } from '../types';
 
 interface DocumentPreviewProps {
@@ -29,14 +45,24 @@ export default function DocumentPreview({
   onPrintPdf,
   onOpenGeminiPrompt
 }: DocumentPreviewProps) {
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [fitMode, setFitMode] = useState<'page' | 'width'>('page');
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
+
+  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 10, 150));
+  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 10, 60));
+
   if (isGeneratingPlan) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4 min-h-[500px]">
-        <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4 h-full shadow-2xs font-sans">
+        <Loader2 className="h-10 w-10 animate-spin text-[#00856A]" />
         <div className="space-y-1">
-          <h4 className="font-bold text-slate-800 text-sm">Elaborando Cronograma Integrado...</h4>
-          <p className="text-xs text-slate-500 max-w-sm leading-relaxed mx-auto">
-            O organizador automático está compilando e distribuindo os objetivos, conteúdos e habilidades do material oficial para preencher as estratégias metodológicas, avaliações, Ações da Taxonomia de Bloom e as Aprendizagens Essenciais (AE) de cada semana.
+          <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+            Elaborando Plano de Ensino Oficial 2026...
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed mx-auto">
+            Compilando objetivos, conteúdos, habilidades da Matriz Paulista e formatando a estrutura com rigor institucional.
           </p>
         </div>
       </div>
@@ -45,24 +71,29 @@ export default function DocumentPreview({
 
   if (!generatedDocHtml) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center flex-1 flex flex-col items-center justify-center gap-4 min-h-[500px] shadow-2xs">
-        <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 border border-emerald-100">
+      <div className="bg-[#E9EEF3] dark:bg-slate-950 rounded-xl border border-slate-300/80 dark:border-slate-800 p-8 text-center flex-1 flex flex-col items-center justify-center gap-5 h-full shadow-inner font-sans">
+        <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-[#00856A] shadow-md border border-slate-200 dark:border-slate-800">
           <BookOpen className="h-8 w-8" />
         </div>
         <div className="space-y-1">
-          <h4 className="font-bold text-slate-800 text-sm">Cronograma Integrado de 10 Semanas</h4>
-          <p className="text-xs text-slate-500 max-w-sm leading-relaxed mx-auto">
-            Selecione as aulas na lista lateral esquerda e clique em <strong>Gerar Plano de Ensino Pronto</strong>. O sistema compilará automaticamente de forma local e offline as avaliações, metodologias ativas, ações Bloom e o cronograma integrado de 2026.
+          <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">
+            Pré-visualização do Plano de Ensino
+          </h4>
+          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md leading-relaxed mx-auto">
+            Preencha e selecione as etapas no painel à esquerda e clique em <strong>Gerar Plano de Ensino</strong> para visualizar e exportar seu documento oficial.
           </p>
         </div>
 
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 max-w-lg text-left text-[11px] text-slate-600 space-y-2 mt-2 leading-relaxed">
-          <h5 className="font-bold text-slate-700 uppercase tracking-wide text-xs mb-1">Previsão e Calendário Escolar (2026):</h5>
-          <ul className="list-disc list-inside space-y-1">
-            <li><strong>1º Bimestre:</strong> 02/02 a 10/04 (10 semanas; Carnaval em 17/02; Sexta-feira Santa em 03/04).</li>
-            <li><strong>2º Bimestre:</strong> 22/04 a 03/07 (10 semanas; Dia do Trabalho em 01/05; Corpus Christi em 04/06).</li>
-            <li><strong>3º Bimestre:</strong> 24/07 a 02/10 (10 semanas; Independência do Brasil em 07/09).</li>
-            <li><strong>4º Bimestre:</strong> 05/10 a 18/12 (10 semanas; N. Sra. Aparecida em 12/10; Finados em 02/11; Consciência Negra em 20/11).</li>
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 max-w-lg text-left text-xs text-slate-600 dark:text-slate-300 space-y-2.5 shadow-2xs leading-relaxed">
+          <h5 className="font-bold text-slate-800 dark:text-slate-200 tracking-wide text-xs flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#00856A]"></span>
+            Calendário e Diretrizes SEDUC-SP (2026):
+          </h5>
+          <ul className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+            <li>• <strong>1º Bimestre:</strong> 02/02 a 10/04 (10 semanas; Prova Paulista)</li>
+            <li>• <strong>2º Bimestre:</strong> 22/04 a 03/07 (10 semanas; Prova Paulista)</li>
+            <li>• <strong>3º Bimestre:</strong> 24/07 a 02/10 (10 semanas; Prova Paulista)</li>
+            <li>• <strong>4º Bimestre:</strong> 05/10 a 18/12 (11 semanas; Saresp / Provão Paulista)</li>
           </ul>
         </div>
       </div>
@@ -70,61 +101,158 @@ export default function DocumentPreview({
   }
 
   return (
-    <div className="space-y-4 flex flex-col flex-1">
-      {/* Action Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            <Monitor className="h-4 w-4 text-emerald-600" />
-            <span>Documento de Impressão Oficial (A4)</span>
+    <div className={`flex flex-col h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#E9EEF3] p-4' : 'relative'}`}>
+      {/* Top Single Toolbar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs mb-3 font-sans shrink-0">
+        {/* Left: Page Counter & Zoom */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">
+            Página 1 de 1
           </span>
+
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+            <button
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 60}
+              className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 cursor-pointer"
+              title="Reduzir Zoom"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-1.5 min-w-[38px] text-center">
+              {zoomLevel}%
+            </span>
+            <button
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 150}
+              className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 cursor-pointer"
+              title="Aumentar Zoom"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Middle: Page Adjustment Modes */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
           <button
-            onClick={onOpenMarginModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer border border-slate-300"
-            title="Configurar Margens A4 (cm)"
+            onClick={() => {
+              setFitMode('page');
+              setZoomLevel(100);
+            }}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+              fitMode === 'page'
+                ? 'bg-white dark:bg-slate-700 text-[#00856A] dark:text-emerald-300 shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
           >
-            <Sliders className="h-3.5 w-3.5 text-slate-600" />
-            Margens A4 ({marginSettings.top} × {marginSettings.left} cm)
+            Ajustar página
           </button>
           <button
-            onClick={onCopyText}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer border border-slate-200"
+            onClick={() => {
+              setFitMode('width');
+              setZoomLevel(110);
+            }}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+              fitMode === 'width'
+                ? 'bg-white dark:bg-slate-700 text-[#00856A] dark:text-emerald-300 shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
           >
-            <Copy className="h-3.5 w-3.5" />
-            Copiar Texto
+            Ajustar largura
           </button>
+        </div>
+
+        {/* Right: Fullscreen & Export Dropdown */}
+        <div className="flex items-center gap-2 relative">
           <button
-            onClick={onDownloadWord}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition cursor-pointer"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold cursor-pointer transition"
+            title={isFullscreen ? 'Sair da Tela Cheia' : 'Visualizar em Tela Cheia'}
           >
-            <FileText className="h-3.5 w-3.5" />
-            Baixar Word (.docx)
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
-          <button
-            onClick={onDownloadHtml}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition cursor-pointer"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Baixar HTML
-          </button>
-          <button
-            onClick={onPrintPdf}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-2xs cursor-pointer"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Imprimir / PDF
-          </button>
+
+          {/* Export Menu Button */}
+          <div className="relative">
+            <button
+              onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#00856A] hover:bg-[#006B56] text-white text-xs font-bold rounded-lg transition shadow-2xs cursor-pointer"
+            >
+              <span>Exportar</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Export Dropdown Options */}
+            {isExportMenuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-1.5 space-y-1 font-sans"
+                onMouseLeave={() => setIsExportMenuOpen(false)}
+              >
+                <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Opções de Exportação
+                </div>
+
+                <button
+                  onClick={() => {
+                    onDownloadWord();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition text-left cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <span>Baixar Word (.docx)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onPrintPdf();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#00856A] dark:text-emerald-400 hover:bg-[#E8F7F2] dark:hover:bg-[#00856A]/20 rounded-lg transition text-left cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-[#00856A]" />
+                  <span>Imprimir / Salvar PDF</span>
+                </button>
+
+                <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+
+                <button
+                  onClick={() => {
+                    onDownloadHtml();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-left cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4 text-slate-500" />
+                  <span>Baixar Arquivo HTML</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onCopyText();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-left cursor-pointer"
+                >
+                  <Copy className="w-4 h-4 text-slate-500" />
+                  <span>Copiar Conteúdo em Texto</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Rendering Stage: Direct Official A4 Document View */}
-      <div className="bg-slate-200/70 rounded-2xl border border-slate-300 p-6 overflow-y-auto flex-1 flex justify-center max-h-[850px] shadow-inner">
+      {/* Main Preview Container with #E9EEF3 background and white paper sheet */}
+      <div className="bg-[#E9EEF3] dark:bg-slate-950 rounded-xl border border-slate-300/80 dark:border-slate-800 p-4 sm:p-6 overflow-y-auto flex-1 flex justify-center shadow-inner relative">
         <div
-          className="bg-white border border-slate-300 shadow-xl w-full max-w-[29.7cm] box-border overflow-x-auto min-h-[21cm] text-left rounded-sm"
+          className="bg-white border border-slate-300 shadow-[0_4px_18px_rgba(15,23,42,0.16)] w-full max-w-[29.7cm] box-border overflow-x-auto min-h-[21cm] text-left rounded-sm transition-transform origin-top"
           style={{
+            transform: `scale(${zoomLevel / 100})`,
             paddingTop: `${marginSettings.top}cm`,
             paddingBottom: `${marginSettings.bottom}cm`,
             paddingLeft: `${marginSettings.left}cm`,
@@ -132,45 +260,9 @@ export default function DocumentPreview({
             fontFamily: "Cambria, 'Cambria Math', Georgia, serif"
           }}
         >
-          <style>{`
-            ${planFormat === 'ava-efape' ? `
-              #output-document { font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; color: black; line-height: 1.35; }
-              #output-document p, #output-document td, #output-document li, #output-document span { font-size: 11pt !important; font-weight: normal; margin-top: 0; margin-bottom: 6pt; text-align: justify; line-height: 1.35; }
-              #output-document strong, #output-document b, #output-document th, #output-document h1, #output-document h2, #output-document h3 { font-size: 12pt !important; font-weight: bold; }
-              #output-document ul { margin-top: 0; margin-bottom: 0; padding-left: 15pt; }
-              #output-document li { margin-bottom: 3pt; text-align: justify; line-height: 1.35; }
-              #output-document table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.35; }
-              #output-document td { padding: 6pt; vertical-align: top; word-wrap: break-word; text-align: justify; font-family: Cambria, 'Cambria Math', Georgia, serif; }
-              #output-document .weekly-plan-page { border: none !important; box-shadow: none !important; margin-bottom: 0 !important; padding: 0 !important; background: transparent !important; }
-            ` : `
-              #output-document { font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; color: black; }
-              #output-document p, #output-document td, #output-document li, #output-document span { font-size: 11pt !important; font-weight: normal; margin-top: 0; margin-bottom: 6pt; text-align: justify; line-height: 1.2; }
-              #output-document strong, #output-document b, #output-document th, #output-document h1, #output-document h2, #output-document h3 { font-size: 12pt !important; font-weight: bold; }
-              #output-document ul { margin-top: 0; margin-bottom: 0; padding-left: 15pt; }
-              #output-document li { margin-bottom: 3pt; text-align: justify; line-height: 1.2; }
-              #output-document table { table-layout: fixed; border-collapse: collapse; width: 100%; margin-bottom: 12pt; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; }
-              #output-document td { border: 1pt solid black; padding: 5pt; word-wrap: break-word; text-align: justify; font-family: Cambria, 'Cambria Math', Georgia, serif; font-size: 11pt; line-height: 1.2; }
-            `}
-          `}</style>
           <div
             id="output-document"
             dangerouslySetInnerHTML={{ __html: generatedDocHtml }}
-            onClick={(e) => {
-              const target = e.target as HTMLElement;
-              const trigger = target.closest('.gemini-prompt-trigger');
-              if (trigger) {
-                e.preventDefault();
-                const weekIdxAttr = trigger.getAttribute('data-week-idx');
-                if (weekIdxAttr !== null) {
-                  const weekIdx = parseInt(weekIdxAttr);
-                  const week = generatedWeeks[weekIdx];
-                  if (week) {
-                    const verificadora = week.lessons?.find((l: any) => l.num === 999);
-                    onOpenGeminiPrompt(verificadora || { previousLessons: week.lessons || [] });
-                  }
-                }
-              }
-            }}
           />
         </div>
       </div>

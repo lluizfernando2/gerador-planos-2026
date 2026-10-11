@@ -1,9 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
+  const disableHmr = process.env.DISABLE_HMR === 'true';
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -13,9 +15,10 @@ export default defineConfig(() => {
       dedupe: ['react', 'react-dom'],
     },
     server: {
-      // Set hmr to false to prevent WebSocket connection warnings in sandboxed preview environments
-      hmr: false,
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      port: 3000,
+      host: '0.0.0.0',
+      hmr: disableHmr ? false : true,
+      watch: disableHmr ? null : {},
     },
   };
 });

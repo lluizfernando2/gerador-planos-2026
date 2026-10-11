@@ -9,8 +9,25 @@ import {
   Bookmark, 
   Sparkles,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  Calendar,
+  Settings,
+  Layers,
+  Search,
+  Award,
+  Compass,
+  FileCheck
 } from 'lucide-react';
+
+export interface ActivePlanSkillsMapping {
+  subject: string;
+  grade: string;
+  bimester: string;
+  totalSelectedLessons: number;
+  activeSkillCodes: string[];
+  skillCounts: Record<string, number>;
+  activeLessons: any[];
+}
 
 interface DashboardPageProps {
   totalItems: number;
@@ -18,25 +35,18 @@ interface DashboardPageProps {
   favoritesCount: number;
   updateCount: number;
   lastUpdateFormatted: string;
-  onNavigate: (tab: 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'help' | 'documents') => void;
+  onNavigate: (tab: 'curriculum' | 'plan-generator' | 'recovery-plan' | 'repositories' | 'favorites' | 'help' | 'assessment-calendar' | 'dashboard' | 'settings') => void;
   onShowTour: () => void;
-  activePlanSummary?: {
-    subject: string;
-    grade: string;
-    bimester: string;
-    selectedCount: number;
-  };
+  activePlanSkillsMapping?: ActivePlanSkillsMapping;
 }
 
 export default function DashboardPage({
+  totalItems,
+  totalSkills,
+  favoritesCount,
   onNavigate,
   onShowTour,
-  activePlanSummary = {
-    subject: 'Matemática',
-    grade: '9º Ano',
-    bimester: '2º Bimestre',
-    selectedCount: 6
-  }
+  activePlanSkillsMapping
 }: DashboardPageProps) {
 
   const getGreeting = () => {
@@ -46,183 +56,220 @@ export default function DashboardPage({
     return 'Boa noite';
   };
 
+  const planningTools = [
+    {
+      id: 'plan-generator' as const,
+      title: 'Plano de Ensino (10 Semanas)',
+      badge: 'Modelo 1 & Customizável',
+      badgeColor: 'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-300',
+      description: 'Elabore cronogramas bimestrais com Aprendizagens Essenciais (AE), Taxonomia de Bloom, estratégias ativas, paradas de verificação e exportação em Word/A4.',
+      icon: BookOpen,
+      iconBg: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
+      actionText: 'Criar / Editar Plano de Ensino'
+    },
+    {
+      id: 'recovery-plan' as const,
+      title: 'Plano de Recuperação Semestral',
+      badge: 'Resolução SEDUC 42/2024',
+      badgeColor: 'bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-300',
+      description: 'Gere planos de recomposição de aprendizagem para estudantes com rendimento em defasagem e suporte às avaliações da Prova Paulista.',
+      icon: GraduationCap,
+      iconBg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+      actionText: 'Elaborar Recuperação'
+    },
+    {
+      id: 'curriculum' as const,
+      title: 'Matriz Curricular Paulista 2026',
+      badge: 'FGB, Técnico e Diversificada',
+      badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300',
+      description: 'Pesquise e navegue por todas as habilidades oficiais, objetos de conhecimento, descritores e competências socioemocionais do Estado de SP.',
+      icon: FileText,
+      iconBg: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
+      actionText: 'Explorar Matriz Curricular'
+    },
+    {
+      id: 'assessment-calendar' as const,
+      title: 'Calendário & Avaliações do 4º Bimestre',
+      badge: 'SARESP & Provão Paulista',
+      badgeColor: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300',
+      description: 'Consulte as datas oficiais do Provão Paulista (1ª, 2ª e 3ª EM), SARESP (6º ao 9º EF) e OMASP para orientar o cronograma pedagógico.',
+      icon: Calendar,
+      iconBg: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400',
+      actionText: 'Ver Calendário Avaliativo'
+    },
+    {
+      id: 'repositories' as const,
+      title: 'Repositório & Banco de Questões',
+      badge: 'Atividades Verificadoras',
+      badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300',
+      description: 'Consulte questões do SARESP, Prova Paulista e repositórios para estruturar atividades de checagem da retenção dos conteúdos.',
+      icon: HelpCircle,
+      iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400',
+      actionText: 'Abrir Banco de Questões'
+    },
+    {
+      id: 'favorites' as const,
+      title: 'Habilidades Favoritas & Acervo',
+      badge: favoritesCount > 0 ? `${favoritesCount} salvas` : 'Acervo Pessoal',
+      badgeColor: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300',
+      description: 'Acesse rapidamente suas habilidades e itens curriculares favoritados para inclusão em planejamentos futuros.',
+      icon: Bookmark,
+      iconBg: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400',
+      actionText: 'Acessar Favoritos'
+    }
+  ];
+
+  const systemTools = [
+    {
+      id: 'settings' as const,
+      title: 'Configurações do Sistema',
+      description: 'Ajuste preferências visuais, tipografia, estilos de bordas e gerenciamento de armazenamento local.',
+      icon: Settings,
+      actionText: 'Configurações'
+    },
+    {
+      id: 'help' as const,
+      title: 'Central de Treinamento & Guia',
+      description: 'Aprenda a utilizar todos os recursos da plataforma através do tour guiado explicativo.',
+      icon: Compass,
+      actionText: 'Iniciar Tutorial'
+    }
+  ];
+
   return (
-    <div className="space-y-10 max-w-5xl mx-auto py-2" translate="no" lang="pt-BR">
+    <div className="space-y-10 max-w-6xl mx-auto py-2 animate-fadeIn" translate="no" lang="pt-BR">
       
-      {/* 1. SEÇÃO DE BOAS-VINDAS E AÇÃO PRINCIPAL */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-xs space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+      {/* 1. HERO HEROIC BANNER / LANDING HUB */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-8 sm:p-10 shadow-lg border border-slate-700/80 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="relative z-10 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Mesa de Trabalho Pedagógico SP • 2026</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
             {getGreeting()}, Professor(a).
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mt-1 font-medium">
-            O que você quer fazer hoje?
+
+          <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+            Selecione uma das ferramentas abaixo para iniciar seu planejamento de aula, consultar a matriz curricular priorizada ou gerar documentos institucionais oficiais.
           </p>
-        </div>
 
-        <div className="flex flex-wrap gap-4 pt-1">
-          {/* Ação Principal Dominante */}
-          <button
-            onClick={() => onNavigate('plan-generator')}
-            className="px-6 py-3.5 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-bold text-sm rounded-xl shadow-xs transition cursor-pointer flex items-center gap-2.5"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-            <span>Novo Planejamento</span>
-          </button>
-
-          {/* Ação Secundária */}
-          <button
-            onClick={() => onNavigate('curriculum')}
-            className="px-6 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-sm rounded-xl transition cursor-pointer flex items-center gap-2.5 border border-slate-200 dark:border-slate-700"
-          >
-            <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <span>Explorar Currículo</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. CONTINUAR TRABALHO EM ANDAMENTO */}
-      {activePlanSummary && (
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">
-            CONTINUAR
-          </h2>
-
-          <div className="bg-sky-50/60 dark:bg-slate-900/90 rounded-xl border border-sky-200/80 dark:border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky-700 dark:text-sky-400">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Rascunho Ativo</span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                Planejamento de {activePlanSummary.subject}
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {activePlanSummary.grade} • {activePlanSummary.bimester} • {activePlanSummary.selectedCount} habilidades selecionadas
-              </p>
-            </div>
-
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               onClick={() => onNavigate('plan-generator')}
-              className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs rounded-lg transition cursor-pointer flex items-center justify-center gap-2 shrink-0"
+              className="px-6 py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-md transition cursor-pointer flex items-center gap-2"
             >
-              <span>Continuar</span>
-              <ArrowRight className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Novo Plano de Ensino</span>
+            </button>
+            <button
+              onClick={() => onNavigate('recovery-plan')}
+              className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-xl border border-slate-600 transition cursor-pointer flex items-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4 text-amber-400" />
+              <span>Plano de Recuperação</span>
             </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 3. RECENTES */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">
-          RECENTES
-        </h2>
-
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 shadow-xs">
-          <div 
-            onClick={() => onNavigate('plan-generator')}
-            className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs">
-                MAT
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Planejamento de Matemática — 9º Ano
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  2º Bimestre • Atualizado recentemente
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline">
-              Abrir
-            </span>
+      {/* 2. MAIN HUB CARDS GRID (FORMER SIDEBAR ITEMS AS LANDING PORTALS) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              <span>Ferramentas de Planejamento de Ensino</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Escolha a dimensão pedagógica que deseja trabalhar
+            </p>
           </div>
+        </div>
 
-          <div 
-            onClick={() => onNavigate('plan-generator')}
-            className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs">
-                POR
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {planningTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <div
+                key={tool.id}
+                onClick={() => onNavigate(tool.id)}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-11 h-11 rounded-xl ${tool.iconBg} flex items-center justify-center font-bold`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${tool.badgeColor}`}>
+                      {tool.badge}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
+                      {tool.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1.5">
+                      {tool.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-sky-600 dark:text-sky-400 group-hover:translate-x-0.5 transition">
+                  <span>{tool.actionText}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Planejamento de Língua Portuguesa — 6º Ano
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  1º Bimestre • Salvo
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline">
-              Abrir
-            </span>
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* 4. ATALHOS RÁPIDOS */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">
-          ATALHOS
-        </h2>
+      {/* 3. SYSTEM & TUTORIAL HUB SECTION */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-500" />
+            <span>Geral & Suporte ao Sistema</span>
+          </h2>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <button
-            onClick={() => onNavigate('curriculum')}
-            className="p-5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer space-y-2 group shadow-2xs"
-          >
-            <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                Currículo
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Consulte a Matriz Priorizada 2026
-              </p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => onNavigate('recovery-plan')}
-            className="p-5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer space-y-2 group shadow-2xs"
-          >
-            <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                Recuperação
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Planos para alunos em defasagem
-              </p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => onNavigate('plan-generator')}
-            className="p-5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer space-y-2 group shadow-2xs"
-          >
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                Documentos
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Exporte e baixe arquivos para o Word
-              </p>
-            </div>
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {systemTools.map((st) => {
+            const Icon = st.icon;
+            return (
+              <div
+                key={st.id}
+                onClick={() => {
+                  if (st.id === 'help') {
+                    onShowTour();
+                    onNavigate('help');
+                  } else {
+                    onNavigate(st.id);
+                  }
+                }}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:border-slate-400 transition cursor-pointer flex items-center justify-between gap-4 group"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
+                      {st.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      {st.description}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 shrink-0 group-hover:translate-x-1 transition" />
+              </div>
+            );
+          })}
         </div>
       </div>
 

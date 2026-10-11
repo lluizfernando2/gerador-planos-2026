@@ -1,7 +1,4 @@
 import { LOGO_SP_BASE64 } from '../data/logoSp';
-import { buildAvaEfapeDocumentHTML } from '../data/subjectMappings';
-
-export { buildAvaEfapeDocumentHTML };
 
 export function getWeeksForBimestre(bimestre: string) {
   if (bimestre === '1º Bimestre') {
@@ -46,17 +43,19 @@ export function getWeeksForBimestre(bimestre: string) {
       { num: 10, period: "28/09 a 02/10/2026", holiday: "Consolidação e Devolutiva" }
     ];
   }
+  // 4º Bimestre (Detalhamento oficial 2026 - 11 semanas)
   return [
-    { num: 1, period: "05 a 09/10/2026", holiday: "" },
-    { num: 2, period: "12 a 16/10/2026", holiday: "Feriado: 12/10 - N. Sra. Aparecida" },
-    { num: 3, period: "19 a 23/10/2026", holiday: "" },
-    { num: 4, period: "26 a 30/10/2026", holiday: "" },
-    { num: 5, period: "02 a 06/11/2026", holiday: "Feriado: 02/11 - Finados" },
-    { num: 6, period: "09 a 13/11/2026", holiday: "" },
-    { num: 7, period: "16 a 20/11/2026", holiday: "Feriado: 20/11 - Consciência Negra" },
-    { num: 8, period: "23 a 27/11/2026", holiday: "Previsão SARESP (25/11 e 26/11)" },
-    { num: 9, period: "30/11 a 04/12/2026", holiday: "Recuperação" },
-    { num: 10, period: "07 a 18/12/2026", holiday: "Consolidação / Atividades de Fechamento" }
+    { num: 1, period: "05/10 a 09/10/2026", holiday: "" },
+    { num: 2, period: "12/10 a 16/10/2026", holiday: "12/10 = Feriado Nacional | 13/10 = Catavento e Museu da Lingua Portuguesa (?) – Anos Finais | 15/10 = Feriado Escolar" },
+    { num: 3, period: "19/10 a 23/10/2026", holiday: "20/10 = Simulado Provão Paulista e ENEM (Para o Ensino Médio) | 23/10 = Jardim do Conhecimento/Feira" },
+    { num: 4, period: "26/10 a 30/10/2026", holiday: "29 (Linguagens e CN) e 30/10/2026 (Matemática e CH) = SARESP 9º ano (Impresso)" },
+    { num: 5, period: "02/11 a 06/11/2026", holiday: "02/11 = Feriado Nacional | 04 e 05/11/2026 = Provão Paulista Seriado 3ª serie" },
+    { num: 6, period: "09/11 a 13/11/2026", holiday: "10 e 11/11/2026 = Provão Paulista Seriado 2ª serie | 12 e 13/11/2026 = Provão Paulista Seriado 1ª serie" },
+    { num: 7, period: "16/11 a 20/11/2026", holiday: "18 (Linguagens e CN) e 19/11/2026 (Matemática e CH) = SARESP 6º ano (Digital) | 20/11 = Feriado Nacional" },
+    { num: 8, period: "23/11 a 27/11/2026", holiday: "26 (Linguagens e CN) e 27/11/2026 (Matemática e CH) = SARESP 7º ano (Digital) | 28/11 = Feriado Escolar Dia do Servidor Publico" },
+    { num: 9, period: "30/11 a 04/12/2026", holiday: "30/11 (Linguagens e CN) e 01/12/2026 (Matemática e CH) = SARESP 8º ano (Digital) | 02/12 e (Linguagens e CN) 03/12/2026 = Reposição SARESP" },
+    { num: 10, period: "07/12 a 11/12/2026", holiday: "07, 08 e 09/12 = Recuperação Semestral da SEDUC | 08/12 = Feriado Municipal" },
+    { num: 11, period: "14/12 a 18/12/2026", holiday: "Conselho de Classe Final e Encerramento do Ano Letivo (18/12/2026)" }
   ];
 }
 
@@ -133,16 +132,43 @@ export function buildDocumentHTML(
   _trabalhosDate?: string,
   _avaliacoesDate?: string
 ) {
-  // Extract unique AEs for the global AEs block from week list
+  // Extract unique AEs for the global AEs block from week list and lessons
   const globalAEs: string[] = [];
   semanas.forEach(s => {
-    if (!s.ae) return;
-    const matches = s.ae.matchAll(/<li>(.*?)<\/li>/g);
-    for (const match of matches) {
-      const text = match[1].replace(/<[^>]*>/g, '').trim();
-      if (text && !globalAEs.includes(text)) {
-        globalAEs.push(text);
+    if (s.ae) {
+      const matches = s.ae.matchAll(/<li>(.*?)<\/li>/g);
+      for (const match of matches) {
+        const text = match[1]
+          .replace(/<[^>]*>/g, '')
+          .replace(/sistematização\s+e\s+checagem\s+de\s+retenção\s+(dos|de)?\s*conteúdos\.?/gi, '')
+          .replace(/como\s+o\s+ensino\s+(está\s+sendo|é)\s+aplicado[^\.\n;]*/gi, '')
+          .replace(/\brevisão\b/gi, 'Síntese')
+          .trim();
+        if (
+          text &&
+          !globalAEs.includes(text) &&
+          text !== 'Não se aplica' &&
+          !text.toLowerCase().includes('nenhuma aprendizagem') &&
+          !text.toLowerCase().includes('lembrar') &&
+          !text.toLowerCase().includes('conforme detalhado')
+        ) {
+          globalAEs.push(text);
+        }
       }
+    }
+    if (s.lessons && Array.isArray(s.lessons)) {
+      s.lessons.forEach((l: any) => {
+        const text = (l.aprendizagem || l.habilidade || l.raw?.habilidadeTexto || '').trim();
+        if (
+          text &&
+          !globalAEs.includes(text) &&
+          text !== 'Não se aplica' &&
+          !text.toLowerCase().includes('desenvolvimento e aplicação prática das habilidades essenciais') &&
+          !text.toLowerCase().includes('nenhuma aprendizagem')
+        ) {
+          globalAEs.push(text);
+        }
+      });
     }
   });
 
@@ -334,9 +360,26 @@ export function buildDocumentHTML(
                   OMASP: 18 a 22/05/2026<br />
                   PROVA PAULISTA 2º BIMESTRE: 15 a 19/06/2026
                 ` : bimestre === '4º Bimestre' ? `
-                  FERIADOS E PONTO FACULTATIVO: 12/10/2026; 02/11/2026; 20/11/2026; 08/12/2026<br />
-                  PREVISÃO SARESP: 25/11/2026 e 26/11/2026<br />
-                  PROVA PAULISTA 4º BIMESTRE: 23 a 27/11/2026
+                  11 semanas<br />
+                  <strong>Datas:</strong><br />
+                  12/10 = Feriado Nacional<br />
+                  13/10 = Catavento e Museu da Lingua Portuguesa (?) – Anos Finais<br />
+                  15/10 = Feriado Escolar<br />
+                  20/10 = Simulado Provão Paulista e ENEM (Para o Ensino Médio)<br />
+                  23/10 = Jardim do Conhecimento/Feira<br />
+                  29 (Linguagens e CN) e 30/10/2026 (Matemática e CH) = SARESP 9º ano (Impresso)<br />
+                  02/11 = Feriado Nacional<br />
+                  04 e 05/11/2026 = Provão Paulista Seriado 3ª serie<br />
+                  10 e 11/11/2026 = Provão Paulista Seriado 2ª serie<br />
+                  12 e 13/11/2026 = Provão Paulista Seriado 1ª serie<br />
+                  18 (Linguagens e CN) e 19/11/2026 (Matemática e CH) = SARESP 6º ano (Digital)<br />
+                  20/11 = Feriado Nacional<br />
+                  26 (Linguagens e CN) e 27/11/2026 (Matemática e CH) = SARESP 7º ano (Digital)<br />
+                  28/11 = Feriado Escolar Dia do Servidor Publico<br />
+                  30/11 (Linguagens e CN) e 01/12/2026 (Matemática e CH) = SARESP 8º ano (Digital)<br />
+                  02/12 e (Linguagens e CN) 03/12/2026 = Reposição SARESP<br />
+                  07, 08 e 09/12 = Recuperação Semestral da SEDUC<br />
+                  08/12 = Feriado Municipal
                 ` : `
                   FERIADOS E PONTO FACULTATIVO: 07/09/2026<br />
                   RECUPERAÇÃO E APROFUNDAMENTO: 27 a 30/07/2026<br />
@@ -455,3 +498,5 @@ export function buildDocumentHTML(
     </div>
   `;
 }
+
+export { buildAvaEfapeDocumentHTML } from '../data/subjectMappings';

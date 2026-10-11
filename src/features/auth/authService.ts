@@ -2,8 +2,7 @@ import { User } from 'firebase/auth';
 import { 
   googleSignIn, 
   logoutUser, 
-  initAuth, 
-  getAccessToken 
+  initAuth
 } from '../../lib/firebase';
 
 export interface AuthState {
@@ -23,10 +22,10 @@ export class AuthService {
 
   constructor() {
     initAuth(
-      (user, token) => {
+      (user: User) => {
         this.currentState = {
           user,
-          accessToken: token,
+          accessToken: null,
           isAuthenticated: true,
         };
         this.notifyListeners();
@@ -51,15 +50,15 @@ export class AuthService {
   }
 
   public getAccessToken(): string | null {
-    return getAccessToken() || this.currentState.accessToken;
+    return this.currentState.accessToken;
   }
 
-  public async loginWithGoogle(): Promise<{ user: User; accessToken: string } | null> {
+  public async loginWithGoogle(): Promise<{ user: User } | null> {
     const result = await googleSignIn();
-    if (result) {
+    if (result && result.user) {
       this.currentState = {
         user: result.user,
-        accessToken: result.accessToken,
+        accessToken: null,
         isAuthenticated: true,
       };
       this.notifyListeners();

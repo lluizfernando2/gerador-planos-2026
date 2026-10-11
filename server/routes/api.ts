@@ -17,6 +17,16 @@ apiRouter.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// GET /api/health - Monitoring and uptime endpoint
+apiRouter.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Simple In-Memory Rate Limiter (Anti-DoS / Anti-Spam)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
@@ -67,13 +77,15 @@ function loadComments(): any[] {
   }
 }
 
-function saveComments(comments: any[]): void {
+async function saveComments(comments: any[]): Promise<void> {
   try {
     const dir = path.dirname(COMMENTS_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(COMMENTS_FILE, JSON.stringify(comments, null, 2), 'utf-8');
+    const tempFile = `${COMMENTS_FILE}.${Date.now()}.${Math.random().toString(36).substring(2, 7)}.tmp`;
+    await fs.promises.writeFile(tempFile, JSON.stringify(comments, null, 2), 'utf-8');
+    await fs.promises.rename(tempFile, COMMENTS_FILE);
   } catch (err) {
     console.error('Failed to save comments to disk:', err);
   }
@@ -86,7 +98,7 @@ apiRouter.get('/comments', (_req: Request, res: Response) => {
 });
 
 // POST a real user comment (Rate-limited to 10 per 5 min)
-apiRouter.post('/comments', rateLimiter(10, 5 * 60 * 1000), (req: Request, res: Response) => {
+apiRouter.post('/comments', rateLimiter(10, 5 * 60 * 1000), async (req: Request, res: Response) => {
   const { name, role, rating, text } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -124,13 +136,13 @@ apiRouter.post('/comments', rateLimiter(10, 5 * 60 * 1000), (req: Request, res: 
 
   const comments = loadComments();
   comments.unshift(newComment);
-  saveComments(comments);
+  await saveComments(comments);
 
   res.status(201).json({ success: true, comment: newComment, comments });
 });
 
 // POST upvote/like a comment (Rate-limited to 30 per min)
-apiRouter.post('/comments/:id/like', rateLimiter(30, 60 * 1000), (req: Request, res: Response) => {
+apiRouter.post('/comments/:id/like', rateLimiter(30, 60 * 1000), async (req: Request, res: Response) => {
   const { id } = req.params;
   const comments = loadComments();
   let found = false;
@@ -147,7 +159,7 @@ apiRouter.post('/comments/:id/like', rateLimiter(30, 60 * 1000), (req: Request, 
     return res.status(404).json({ success: false, error: 'Comentário não encontrado.' });
   }
 
-  saveComments(updatedComments);
+  await saveComments(updatedComments);
   res.json({ success: true, comments: updatedComments });
 });
 
@@ -243,7 +255,7 @@ apiRouter.post('/plans/validate', rateLimiter(30, 60 * 1000), (req: Request, res
     valid: true,
     message: 'Parâmetros do plano de ensino validados com sucesso.',
     payloadSummary: {
-      escola: sanitizeInput(escola || 'E.E. PROF. FRANCISCO ÁLVARES'),
+      escola: sanitizeInput(escola || 'Escola Estadual'),
       docente: sanitizeInput(docente || 'Docente Responsável'),
       componente: sanitizeInput(componente),
       serie: sanitizeInput(serie),
@@ -251,4 +263,23 @@ apiRouter.post('/plans/validate', rateLimiter(30, 60 * 1000), (req: Request, res
       totalAulasSelecionadas: Array.isArray(selectedLessons) ? selectedLessons.length : 0
     }
   });
+});
+
+// Endpoint to download the full codebase PDF
+apiRouter.get('/download-code-pdf', (_req: Request, res: Response) => {
+  const rootPdfPath = path.join(process.cwd(), 'codigo_completo_app.pdf');
+  const publicPdfPath = path.join(process.cwd(), 'public', 'codigo_completo_app.pdf');
+
+  const targetPath = fs.existsSync(rootPdfPath) ? rootPdfPath : publicPdfPath;
+
+  if (!fs.existsSync(targetPath)) {
+    return res.status(404).json({
+      success: false,
+      error: 'Arquivo PDF não encontrado. Por favor execute npm run export:pdf'
+    });
+  }
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename="codigo_completo_app.pdf"');
+  return res.sendFile(targetPath);
 });

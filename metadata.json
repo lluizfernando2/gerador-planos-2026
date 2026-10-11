@@ -1,6 +1,6 @@
 {
   "name": "Currículo Priorizado",
-  "description": "Visualizador, gerador e exportador do Currículo Priorizado e Técnico do Estado de São Paulo com suporte a planejamento bimestral completo.",
+  "description": "Visualizador, gerador e exportador do Currículo Priorizado e Técnico do Estado de São Paulo, planejamentos de ensino, avaliações e planos de recuperação 2026.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

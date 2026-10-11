@@ -10,7 +10,7 @@ import DetailModal from './DetailModal';
 import ToastNotification, { ToastMessage } from './ToastNotification';
 import HelpSection from './HelpSection';
 import Footer from './Footer';
-import { buildSecuredPrompt } from '../lib/securityPrompt';
+import { buildSecuredPrompt } from '../lib/geminiPrompt';
 import {
   PROJETO_DE_VIDA_DATA,
   TECNOLOGIA_INOVACAO_DATA,
@@ -27,14 +27,26 @@ import {
 import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from '../data/tecnicoData';
 import { MATRIZ_SOCIOEMOCIONAL } from '../data/socioemocionalDatabase';
 
+export interface ActivePlanSkillsMapping {
+  subject: string;
+  grade: string;
+  bimester: string;
+  totalSelectedLessons: number;
+  activeSkillCodes: string[];
+  skillCounts: Record<string, number>;
+  activeLessons: any[];
+}
+
 interface CurriculumTableProps {
   items: CurriculumItem[];
   onDeleteItem?: (id: string) => void;
   onFilteredItemsChange?: (filtered: any[], currentSubject: string, isDiversificada: boolean) => void;
+  activePlanSkillsMapping?: ActivePlanSkillsMapping;
 }
 
-export default function CurriculumTable({ items, onDeleteItem, onFilteredItemsChange }: CurriculumTableProps) {
+export default function CurriculumTable({ items, onDeleteItem, onFilteredItemsChange, activePlanSkillsMapping }: CurriculumTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showOnlyActivePlanSkills, setShowOnlyActivePlanSkills] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<'ENSINO FUNDAMENTAL ANOS FINAIS' | 'ENSINO MÉDIO'>('ENSINO FUNDAMENTAL ANOS FINAIS');
   const [subjectCategory, setSubjectCategory] = useState<'FGB' | 'DIVERSIFICADA' | 'ITINERARIOS' | 'TECNICO'>('FGB');
   const [contentTypeFilter, setContentTypeFilter] = useState<string>('Todos');
@@ -53,7 +65,7 @@ export default function CurriculumTable({ items, onDeleteItem, onFilteredItemsCh
   }
 
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>('Todos');
-  const [bimestreFilter, setBimestreFilter] = useState<BimestreFilter>('Todos');
+  const [bimestreFilter, setBimestreFilter] = useState<BimestreFilter>('4º Bimestre');
   const [subject, setSubject] = useState<string>('Língua Portuguesa');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [showSocioMatrix, setShowSocioMatrix] = useState(false);
@@ -192,7 +204,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
     if (segment === 'Anos Finais') {
       allowed = ['Matemática', 'Língua Portuguesa', 'Ciências', 'Geografia', 'História', 'Língua Inglesa', 'Educação Física', 'Arte'];
     } else if (segment === 'Ensino Médio') {
-      allowed = ['Matemática', 'Língua Portuguesa', 'Filosofia', 'Sociologia', 'História', 'Geografia', 'Língua Inglesa', 'Educação Física', 'Arte', 'Biologia', 'Química'];
+      allowed = ['Matemática', 'Língua Portuguesa', 'Física', 'Química', 'Biologia', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Língua Inglesa', 'Educação Física', 'Arte'];
     } else if (segment === 'Parte Diversificada') {
       if (selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS') {
         allowed = ['Projeto de Vida', 'Tecnologia e Inovação', 'Orientação de Estudos - Matemática', 'Orientação de Estudos - Português'];
@@ -231,7 +243,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       return ['Matemática', 'Língua Portuguesa', 'Ciências', 'Geografia', 'História', 'Língua Inglesa', 'Educação Física', 'Arte'];
     }
     if (segment === 'Ensino Médio') {
-      return ['Matemática', 'Língua Portuguesa', 'Filosofia', 'Sociologia', 'História', 'Geografia', 'Língua Inglesa', 'Educação Física', 'Arte', 'Biologia', 'Química'];
+      return ['Matemática', 'Língua Portuguesa', 'Física', 'Química', 'Biologia', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Língua Inglesa', 'Educação Física', 'Arte'];
     }
     if (segment === 'Parte Diversificada') {
       return ['Projeto de Vida', 'Tecnologia e Inovação', 'Orientação de Estudos - Matemática', 'Orientação de Estudos - Português', 'Redação e leitura', 'Educação Financeira'];
@@ -257,8 +269,8 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       ];
     }
     return [
-      'Matemática', 'Língua Portuguesa', 'Ciências', 'Geografia', 'História', 'Língua Inglesa', 'Educação Física', 'Arte',
-      'Filosofia', 'Sociologia', 'Biologia', 'Química'
+      'Matemática', 'Língua Portuguesa', 'Física', 'Química', 'Biologia', 'Ciências', 'Geografia', 'História', 'Língua Inglesa', 'Educação Física', 'Arte',
+      'Filosofia', 'Sociologia', 'Empreendedorismo', 'Atualidades', 'Arte e Mídias Digitais', 'Educação Financeira'
     ];
   };
 
@@ -327,8 +339,10 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       case 'Redação e Leitura':
       case 'Redação e leitura':
         return REDACAO_LEITURA_DATA;
-      case 'Educação Financeira':
-        return EDUCACAO_FINANCEIRA_DATA;
+      case 'Educação Financeira': {
+        const emEf = items.filter(it => (it.disciplina || '').toLowerCase() === 'educação financeira');
+        return emEf.length > 0 ? emEf : EDUCACAO_FINANCEIRA_DATA;
+      }
       default:
         return [];
     }
@@ -355,9 +369,6 @@ Por favor, gere o material completo estruturado para cópia direta!`;
 
     // Bimester distribution
     const bimestresCount = {
-      '1º Bimestre': currentLessons.filter(l => l.bimestre === '1º Bimestre').length,
-      '2º Bimestre': currentLessons.filter(l => l.bimestre === '2º Bimestre').length,
-      '3º Bimestre': currentLessons.filter(l => l.bimestre === '3º Bimestre').length,
       '4º Bimestre': currentLessons.filter(l => l.bimestre === '4º Bimestre').length,
     };
 
@@ -483,7 +494,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
     if (segment === 'Ensino Técnico') {
       return filteredTecnicoItems;
     }
-    return items.filter((item) => {
+    const res = items.filter((item) => {
       // Exclude blank / empty items
       const hasTitle = (item.titulo || '').trim() !== '';
       const hasContent = (item.conteudo || '').trim() !== '';
@@ -513,7 +524,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
 
       let matchesSegment = false;
       if (segment === 'Todos') {
-        matchesSegment = true; // wait, if we want to include everything
+        matchesSegment = true;
       } else if (segment === 'Itinerários Formativos') {
         matchesSegment = isItinerario;
       } else if (segment === 'Ensino Médio') {
@@ -530,9 +541,17 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       const itemSubject = item.disciplina || 'Matemática';
       const matchesSubject = itemSubject.toLowerCase() === subject.toLowerCase();
 
-      return matchesSearch && matchesSegment && matchesGrade && matchesBimestre && matchesSubject;
+      let matchesActivePlan = true;
+      if (showOnlyActivePlanSkills && activePlanSkillsMapping && activePlanSkillsMapping.activeSkillCodes.length > 0) {
+        const itemHab = (item.habilidade || item.aprendizagem || '').toUpperCase();
+        matchesActivePlan = activePlanSkillsMapping.activeSkillCodes.some(code => itemHab.includes(code));
+      }
+
+      return matchesSearch && matchesSegment && matchesGrade && matchesBimestre && matchesSubject && matchesActivePlan;
     });
-  }, [segment, filteredDiversificadaItems, items, searchTerm, gradeFilter, bimestreFilter, subject, selectedSegment]);
+
+    return res;
+  }, [segment, filteredDiversificadaItems, items, searchTerm, gradeFilter, bimestreFilter, subject, selectedSegment, showOnlyActivePlanSkills, activePlanSkillsMapping]);
 
   const totalSubjectItems = useMemo(() => {
     if (segment === 'Parte Diversificada') {
@@ -2388,11 +2407,9 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                           <td className="px-5 py-4 align-top text-right" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => {
-                                if (window.confirm('Tem certeza que deseja remover esta aula?')) {
-                                  onDeleteItem(item.id);
-                                }
+                                onDeleteItem(item.id);
                               }}
-                              className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold hover:underline p-1"
+                              className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold hover:underline p-1 cursor-pointer"
                             >
                               Excluir
                             </button>
