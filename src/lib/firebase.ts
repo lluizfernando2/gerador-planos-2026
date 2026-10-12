@@ -19,6 +19,65 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const googleProvider = new GoogleAuthProvider();
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+async function testConnection() {
+  try {
+    const testRef = doc(db, 'test', 'connection');
+    await getDoc(testRef);
+  } catch (error: any) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
+testConnection();
+
 export const initAuth = (
   onAuthSuccess?: (user: User, token?: string | null) => void,
   onAuthFailure?: () => void
@@ -140,8 +199,13 @@ export async function saveUserLessonPlan(plan: Omit<SavedPlanRecord, 'userId' | 
     updatedAt: now
   };
 
-  await setDoc(planRef, payload);
-  return planId;
+  try {
+    await setDoc(planRef, payload);
+    return planId;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'user_plans');
+    throw error;
+  }
 }
 
 /**
@@ -158,13 +222,18 @@ export async function getUserLessonPlans(): Promise<SavedPlanRecord[]> {
     where('userId', '==', currentUser.uid)
   );
 
-  const snapshot = await getDocs(plansQuery);
-  const plans: SavedPlanRecord[] = [];
-  snapshot.forEach((docSnap) => {
-    plans.push({ id: docSnap.id, ...docSnap.data() } as SavedPlanRecord);
-  });
+  try {
+    const snapshot = await getDocs(plansQuery);
+    const plans: SavedPlanRecord[] = [];
+    snapshot.forEach((docSnap) => {
+      plans.push({ id: docSnap.id, ...docSnap.data() } as SavedPlanRecord);
+    });
 
-  return plans;
+    return plans;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, 'user_plans');
+    throw error;
+  }
 }
 
 /**
@@ -187,7 +256,12 @@ export async function deleteUserLessonPlan(planId: string): Promise<void> {
     throw new Error('Acesso negado: Você não tem permissão para excluir este plano.');
   }
 
-  await deleteDoc(planRef);
+  try {
+    await deleteDoc(planRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, 'user_plans');
+    throw error;
+  }
 }
 
 /**
@@ -199,15 +273,20 @@ export async function saveTeacherSettings(settings: Omit<TeacherSettingsRecord, 
     throw new Error('Usuário não autenticado.');
   }
 
-  const settingsRef = doc(db, 'user_settings', currentUser.uid);
-  await setDoc(settingsRef, {
-    userId: currentUser.uid,
-    escola: settings.escola || '',
-    docente: settings.docente || '',
-    componente: settings.componente || '',
-    serie: settings.serie || '',
-    updatedAt: new Date().toISOString()
-  }, { merge: true });
+  try {
+    const settingsRef = doc(db, 'user_settings', currentUser.uid);
+    await setDoc(settingsRef, {
+      userId: currentUser.uid,
+      escola: settings.escola || '',
+      docente: settings.docente || '',
+      componente: settings.componente || '',
+      serie: settings.serie || '',
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'user_settings');
+    throw error;
+  }
 }
 
 /**
@@ -219,11 +298,16 @@ export async function getTeacherSettings(): Promise<TeacherSettingsRecord | null
     return null;
   }
 
-  const settingsRef = doc(db, 'user_settings', currentUser.uid);
-  const snap = await getDoc(settingsRef);
+  try {
+    const settingsRef = doc(db, 'user_settings', currentUser.uid);
+    const snap = await getDoc(settingsRef);
 
-  if (snap.exists()) {
-    return snap.data() as TeacherSettingsRecord;
+    if (snap.exists()) {
+      return snap.data() as TeacherSettingsRecord;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, 'user_settings');
+    throw error;
   }
-  return null;
 }

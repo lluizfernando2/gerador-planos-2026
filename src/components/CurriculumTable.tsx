@@ -207,7 +207,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       allowed = ['Matemática', 'Língua Portuguesa', 'Física', 'Química', 'Biologia', 'História', 'Geografia', 'Filosofia', 'Sociologia', 'Língua Inglesa', 'Educação Física', 'Arte'];
     } else if (segment === 'Parte Diversificada') {
       if (selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS') {
-        allowed = ['Projeto de Vida', 'Tecnologia e Inovação', 'Orientação de Estudos - Matemática', 'Orientação de Estudos - Português'];
+        allowed = ['Projeto de Vida', 'Tecnologia e Inovação', 'Orientação de Estudos - Matemática', 'Orientação de Estudos - Português', 'Redação e Leitura', 'Educação Financeira'];
       } else {
         allowed = ['Projeto de Vida', 'Educação Financeira', 'Redação e Leitura'];
       }
@@ -309,7 +309,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
     }
 
     if (selectedSegmentNormalized === 'Ensino Médio') {
-      const allowedEM = ['Matemática', 'Língua Portuguesa', 'Geografia', 'Língua Inglesa', 'História', 'Arte', 'Educação Física', 'Filosofia', 'Sociologia', 'Biologia', 'Química'];
+      const allowedEM = ['Matemática', 'Língua Portuguesa', 'Física', 'Geografia', 'Língua Inglesa', 'História', 'Arte', 'Educação Física', 'Filosofia', 'Sociologia', 'Biologia', 'Química'];
       if (!allowedEM.includes(subject)) return true;
 
       if (gradeFilter !== 'Todos') {
@@ -474,13 +474,14 @@ Por favor, gere o material completo estruturado para cópia direta!`;
       if (query === '') return matchesGrade && matchesBimestre;
 
       const matchesSearch =
-        raw.tituloAula.toLowerCase().includes(query) ||
-        raw.unidadeCurricular.toLowerCase().includes(query) ||
-        raw.temaSemana.toLowerCase().includes(query) ||
-        raw.competenciaTecnica.toLowerCase().includes(query) ||
-        raw.objetivosAula.toLowerCase().includes(query) ||
-        raw.habilidadesTecnicas.toLowerCase().includes(query) ||
-        raw.habilidadesSocioemocionais.toLowerCase().includes(query);
+        (raw.tituloAula || raw.titulo || '').toLowerCase().includes(query) ||
+        (raw.unidadeCurricular || '').toLowerCase().includes(query) ||
+        (raw.temaSemana || '').toLowerCase().includes(query) ||
+        (raw.competenciaTecnica || '').toLowerCase().includes(query) ||
+        (raw.objetivosAula || raw.objetivos || '').toLowerCase().includes(query) ||
+        (raw.habilidadesTecnicas || raw.habilidade || '').toLowerCase().includes(query) ||
+        (raw.habilidadesSocioemocionais || '').toLowerCase().includes(query) ||
+        (raw.objetoConhecimento || raw.conteudo || '').toLowerCase().includes(query);
 
       return matchesGrade && matchesBimestre && matchesSearch;
     }).map(mapTecnicoToCurriculum);
@@ -761,9 +762,9 @@ Por favor, gere o material completo estruturado para cópia direta!`;
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
-            {filteredDiversificadaItems.map((item: any) => (
+            {filteredDiversificadaItems.map((item: any, index: number) => (
               <tr
-                key={item.id}
+                key={`${item.id}-${index}`}
                 className="hover:bg-purple-50/20 transition-colors cursor-pointer group"
                 onClick={() => setSelectedItem(item)}
               >
@@ -848,9 +849,9 @@ Por favor, gere o material completo estruturado para cópia direta!`;
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
-            {filteredDiversificadaItems.map((item: any) => (
+            {filteredDiversificadaItems.map((item: any, index: number) => (
               <tr
-                key={item.id}
+                key={`${item.id}-${index}`}
                 className="hover:bg-sky-50/20 transition-colors cursor-pointer group"
                 onClick={() => setSelectedItem(item)}
               >
@@ -1640,7 +1641,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
               <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">Indicações Literárias Adotadas</h4>
               <div className="space-y-1.5">
                 {item.sugestoes.map((sug, idx) => (
-                  <div key={idx} className="text-xs text-rose-900 bg-rose-50/30 px-3 py-1.5 rounded border border-rose-100/30 font-medium">
+                  <div key={`${item.id}-sug-${idx}`} className="text-xs text-rose-900 bg-rose-50/30 px-3 py-1.5 rounded border border-rose-100/30 font-medium">
                     📖 {sug}
                   </div>
                 ))}
@@ -1767,7 +1768,7 @@ Por favor, gere o material completo estruturado para cópia direta!`;
             <button
               onClick={() => {
                 setSelectedSegment('ENSINO FUNDAMENTAL ANOS FINAIS');
-                if (subjectCategory === 'ITINERARIOS') setSubjectCategory('FGB');
+                if (subjectCategory === 'ITINERARIOS' || subjectCategory === 'TECNICO') setSubjectCategory('FGB');
               }}
               className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-150 cursor-pointer ${
                 selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS'
@@ -2315,9 +2316,9 @@ Por favor, gere o material completo estruturado para cópia direta!`;
                       </td>
                     </tr>
                   ) : (
-                    (filteredItems as CurriculumItem[]).map((item) => (
+                    (filteredItems as CurriculumItem[]).map((item, index) => (
                       <tr
-                        key={item.id}
+                        key={`${item.id}-${index}`}
                         className="hover:bg-blue-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
                         onClick={() => setSelectedItem(item)}
                       >

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { initialCurriculumData } from './data/curriculumData';
-import { fourthBimesterData } from './data/fourthBimesterData';
+import { itinerariosEMData } from './data/itinerariosEMData';
+import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from './data/tecnicoData';
+const fourthBimesterData = initialCurriculumData.filter(i => i.bimestre === '4º Bimestre');
 import { curriculumRepository } from './features/curriculum/curriculumRepository';
 import {
   PROJETO_DE_VIDA_DATA,
@@ -10,11 +12,6 @@ import {
   EDUCACAO_FINANCEIRA_DATA,
   REDACAO_LEITURA_DATA
 } from './data/diversificadaData';
-import { itinerariosEMData } from './data/itinerariosEMData';
-import { ensinoMedioFgbData } from './data/ensinoMedioFgbData';
-import { ensinoMedioDiversificadaData } from './data/ensinoMedioDiversificadaData';
-import { ensinoMedioItinerariosData } from './data/ensinoMedioItinerariosData';
-import { ensinoMedioTecnicoData } from './data/ensinoMedioTecnicoData';
 import { MATRIZ_SOCIOEMOCIONAL } from './data/socioemocionalDatabase';
 import { buildAvaEfapeDocumentHTML } from './data/subjectMappings';
 import { buildDocumentHTML } from './lib/documentGenerator';
@@ -32,7 +29,6 @@ import * as XLSX from 'xlsx';
 import { PRESET_RECOVERY_TEMPLATES, generateCustomRecoveryPlan, RecoveryPlanResult, buildRecoveryPlanHTML, generateRecoveryPlanMarkdown, matchOfficialRecoveryItem } from './data/recoveryTemplates';
 import { OFFICIAL_RECOVERY_DATA_2026 } from './data/recoveryData2026';
 import { LOGO_SP_BASE64 } from './data/logoSp';
-import { ALL_TECNICO_DATA, mapTecnicoToCurriculum } from './data/tecnicoData';
 import { generatePixPayload } from './lib/pix';
 import { pixService } from './features/pix/pixService';
 import buildInfo from './buildInfo.json';
@@ -945,7 +941,18 @@ const allMappedDiversificada = [
 
 const allMappedTecnico = ALL_TECNICO_DATA.map(mapTecnicoToCurriculum);
 
-const initialCombinedCurriculumData = fourthBimesterData;
+const initialCombinedCurriculumData = [
+  ...initialCurriculumData,
+  ...allMappedDiversificada,
+  ...cleanItinerariosEMData,
+  ...allMappedTecnico
+].filter((item: any) => {
+  if (!item) return false;
+  const t = (item.titulo || item.tema || '').trim();
+  const c = (item.conteudo || item.contexto || '').trim();
+  const o = (item.objetivos || item.compreensao || '').trim();
+  return t !== '' || c !== '' || o !== '';
+});
 
 const FUNDAMENTAL_FGB_SUBJECTS = [
   { id: 'Língua Portuguesa', label: 'Língua Portuguesa', ready: true },
@@ -1053,11 +1060,11 @@ export default function App() {
   const getOfficialCurriculumData = (): CurriculumItem[] => {
     if (selectedSegment === 'ENSINO FUNDAMENTAL ANOS FINAIS') {
       if (subjectCategory === 'FGB') {
-        return fourthBimesterData;
+        return initialCurriculumData.filter(i => ['6º Ano', '7º Ano', '8º Ano', '9º Ano'].includes(i.ano));
       }
 
       if (subjectCategory === 'DIVERSIFICADA') {
-        return allMappedDiversificada;
+        return allMappedDiversificada.filter(i => ['6º Ano', '7º Ano', '8º Ano', '9º Ano'].includes(i.ano));
       }
 
       return [];
@@ -1065,16 +1072,16 @@ export default function App() {
 
     switch (subjectCategory) {
       case 'FGB':
-        return ensinoMedioFgbData;
+        return initialCurriculumData.filter(i => ['1ª Série', '2ª Série', '3ª Série'].includes(i.ano));
 
       case 'DIVERSIFICADA':
-        return ensinoMedioDiversificadaData;
+        return allMappedDiversificada.filter(i => ['1ª Série', '2ª Série', '3ª Série'].includes(i.ano));
 
       case 'TECNICO':
-        return ensinoMedioTecnicoData;
+        return allMappedTecnico;
 
       case 'ITINERARIOS':
-        return ensinoMedioItinerariosData;
+        return cleanItinerariosEMData;
 
       default:
         return [];
@@ -1457,8 +1464,9 @@ export default function App() {
         : '1ª Série'
     );
 
-    // O filtro oficial disponibiliza o 4º bimestre
-    setPlanBimester('4º Bimestre');
+    if (!planBimester) {
+      setPlanBimester('1º Bimestre');
+    }
   }, [dataSource, selectedSegment]);
 
   // Load lessons when category or dataSource changes
@@ -1501,6 +1509,28 @@ export default function App() {
     }
   }, [planSubject, dataSource, uploadedDb]);
 
+  // Synchronize grade and bimester if planSubject changes under official data
+  useEffect(() => {
+    if (dataSource === 'oficial' && planSubject) {
+      const relevant = getOfficialCurriculumData().filter(i =>
+        normalizeFilter(i.disciplina) === normalizeFilter(planSubject)
+      );
+      if (relevant.length > 0) {
+        const uniqueGrades = Array.from(new Set(relevant.map(r => r.ano))).filter(Boolean);
+        let currentGrade = planGrade;
+        if (uniqueGrades.length > 0 && !uniqueGrades.includes(planGrade)) {
+          currentGrade = uniqueGrades[0];
+          setPlanGrade(currentGrade);
+        }
+        const relevantForGrade = relevant.filter(r => r.ano === currentGrade);
+        const uniqueBims = Array.from(new Set(relevantForGrade.map(r => r.bimestre))).filter(Boolean);
+        if (uniqueBims.length > 0 && !uniqueBims.includes(planBimester)) {
+          setPlanBimester(uniqueBims[0]);
+        }
+      }
+    }
+  }, [planSubject, subjectCategory, selectedSegment, dataSource]);
+
   // Update bimester filter list and selected bimester if planGrade changes under upload
   useEffect(() => {
     if (dataSource === 'upload' && planSubject && planGrade && uploadedDb[planSubject]) {
@@ -1537,7 +1567,7 @@ export default function App() {
       }
       return init;
     });
-  }, [planSubject, planGrade, planBimester, dataSource, items]);
+  }, [planSubject, planGrade, planBimester, dataSource, items, selectedSegment, subjectCategory]);
 
   const normalizeFilter = (s: any) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
 
@@ -1722,20 +1752,10 @@ export default function App() {
             const id = k.split('|')[1];
             
             const allOfficialItems = [
-              ...fourthBimesterData,
               ...initialCurriculumData,
-              ...itinerariosEMData,
-              ...ensinoMedioFgbData,
-              ...ensinoMedioDiversificadaData,
-              ...ensinoMedioItinerariosData,
-              ...ensinoMedioTecnicoData,
-              ...ALL_TECNICO_DATA.map(mapTecnicoToCurriculum),
-              ...PROJETO_DE_VIDA_DATA.map(mapProyectoVidaToCurriculum),
-              ...TECNOLOGIA_INOVACAO_DATA.map(mapTecnologiaToCurriculum),
-              ...ORIENTACAO_ESTUDO_MATEMATICA_DATA.map(mapOrientacaoEstudoToCurriculum),
-              ...ORIENTACAO_ESTUDO_PORTUGUES_DATA.map(mapOrientacaoEstudoToCurriculum),
-              ...EDUCACAO_FINANCEIRA_DATA.map(mapEducacaoFinanceiraToCurriculum),
-              ...REDACAO_LEITURA_DATA.map(mapRedacaoLeituraToCurriculum)
+              ...allMappedDiversificada,
+              ...cleanItinerariosEMData,
+              ...allMappedTecnico
             ];
 
             const item = allOfficialItems.find(
@@ -4417,6 +4437,9 @@ ${tablesCleanHtml}
                             onChange={(e) => setPlanBimester(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 bg-white rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                           >
+                            <option value="1º Bimestre">1º Bimestre</option>
+                            <option value="2º Bimestre">2º Bimestre</option>
+                            <option value="3º Bimestre">3º Bimestre</option>
                             <option value="4º Bimestre">4º Bimestre</option>
                           </select>
                         ) : (

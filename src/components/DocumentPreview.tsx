@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Sliders,
   Check,
-  LayoutGrid
+  LayoutGrid,
+  Share2
 } from 'lucide-react';
 import { MarginSettings, PlanFormat, WeekPlan } from '../types';
 
@@ -174,6 +175,25 @@ export default function DocumentPreview({
             title={isFullscreen ? 'Sair da Tela Cheia' : 'Visualizar em Tela Cheia'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
+          {/* Share Button */}
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: 'Plano de Ensino 2026',
+                  text: 'Confira meu Plano de Ensino gerado!',
+                  url: window.location.href,
+                }).catch(console.error);
+              } else {
+                alert("Compartilhamento não suportado neste navegador.");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition shadow-2xs cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5 text-slate-600" />
+            <span>Compartilhar</span>
           </button>
 
           {/* Export Menu Button */}
